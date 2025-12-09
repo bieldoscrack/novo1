@@ -1,0 +1,1285 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>BodyClick — Biel (com Login)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#071029; --card-grad-from:#071426; --card-grad-to:#0b2230;
+      --accent:#ff2d2d; --accent-2:#b30000; --muted:#98a8b6; --white:#e9f0fb;
+      --success:#10b981; --radius:14px;
+      font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg), #0f1724);color:var(--white);-webkit-font-smoothing:antialiased}
+    body{overflow:hidden} /* control via JS once logged in we enable scrolling */
+    .wrap{max-width:980px;margin:18px auto;padding:18px;position:relative}
+    header{display:flex;gap:16px;align-items:flex-start}
+    .brand{display:flex;gap:14px;align-items:center}
+    .logo{width:74px;height:74px;border-radius:18px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#071029;font-weight:900;font-size:34px;flex:0 0 auto}
+    .title h1{margin:0;font-size:20px;font-weight:800}
+    .title p{margin:6px 0 0;color:var(--muted);font-size:13px;max-width:480px}
+    .badge{margin-left:auto;background:linear-gradient(90deg,var(--accent),var(--accent-2));padding:8px 12px;border-radius:12px;color:#071029;font-weight:800;font-size:12px;cursor:pointer}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-top:18px;align-items:start}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:16px;border-radius:var(--radius);box-shadow:0 12px 30px rgba(2,6,23,0.6)}
+    .days{display:flex;gap:10px;flex-wrap:nowrap;overflow:auto;padding-bottom:6px}
+    .pill{flex:0 0 auto;padding:10px 14px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.04);min-width:78px;text-align:center;color:var(--muted);font-weight:600;cursor:pointer;transition:all .18s ease}
+    /* versão vermelha mais evidente */
+    .pill.active{
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      color:#071029;
+      box-shadow: 0 12px 36px rgba(179,0,0,0.22);
+      transform: translateY(-4px);
+      border: 1px solid rgba(255,40,40,0.9);
+    }
+    .progress-bar{height:10px;background:rgba(255,255,255,0.03);border-radius:999px;overflow:hidden}
+    .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0%}
+    .exercise{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:12px;margin-bottom:10px;background:rgba(255,255,255,0.01);transition:transform .18s cubic-bezier(.2,.9,.2,1), box-shadow .18s}
+    .exercise.pulse{transform:scale(1.02);box-shadow:0 18px 42px rgba(179,0,0,0.14)}
+    .ex-left{display:flex;gap:12px;align-items:center;min-width:0}
+    .checkwrap{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);cursor:pointer}
+    .checkwrap input{width:20px;height:20px;cursor:pointer}
+    .ex-title strong{display:block;font-size:15px}
+    .ex-title .meta{color:var(--muted);font-size:13px}
+    .status{padding:6px 8px;border-radius:10px;font-size:12px;background:rgba(255,255,255,0.02);color:var(--muted)}
+    .btn{padding:10px 14px;border-radius:12px;border:none;cursor:pointer;font-weight:800}
+    .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#071029}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+    footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
+    .tabs{display:flex;gap:8px;margin-bottom:12px}
+    .tabs button{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--muted);cursor:pointer}
+    .tabs button.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#071029;border-color:transparent}
+    .calendar{margin-top:8px}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+    .cal-cell{height:72px;border-radius:10px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.03);display:flex;flex-direction:column;justify-content:flex-start;padding:10px;font-size:13px;position:relative;cursor:pointer;transition:transform .12s ease}
+    .cal-cell:hover{transform:translateY(-4px)}
+    .cal-cell .date{font-weight:700}
+    .cal-cell.marked{background:linear-gradient(180deg,#2b0b0b,#3b0f0f);border-color:rgba(255,90,90,0.2)}
+    .cal-badge{position:absolute;right:8px;bottom:8px;background:rgba(255,255,255,0.06);padding:6px 8px;border-radius:8px;font-weight:800;color:#fff;font-size:12px}
+    .modal-backdrop{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(2,6,23,0.7);display:none;align-items:center;justify-content:center;z-index:9999}
+    .modal{background:linear-gradient(180deg,var(--card-grad-from),var(--card-grad-to));padding:18px;border-radius:12px;width:360px;box-shadow:0 30px 70px rgba(2,6,23,0.7);color:var(--white);transform:translateY(24px);opacity:0;transition:all .28s cubic-bezier(.2,.9,.2,1)}
+    .modal.show{transform:translateY(0);opacity:1}
+    .modal .head{display:flex;gap:12px;align-items:center}
+    .modal .icon{width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900}
+    .icon.success{background:linear-gradient(90deg,#16a34a,#10b981);color:#071029}
+    .icon.info{background:linear-gradient(90deg,#3b82f6,#60a5fa);color:#071029}
+    .icon.warn{background:linear-gradient(90deg,#f59e0b,#f97316);color:#071029}
+    .icon.danger{background:linear-gradient(90deg,#ef4444,#b91c1c);color:#071029}
+    .modal h3{margin:0;font-size:18px}
+    .modal p{margin:8px 0 0;color:var(--muted)}
+    .modal .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}
+    #particlesCanvas{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:998}
+
+    /* bottom nav (Motorola-like) */
+    .bottom-nav{
+      position:fixed;
+      left:12px;
+      right:12px;
+      bottom:14px;
+      height:64px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:40px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:8px 16px;
+      box-shadow:0 20px 50px rgba(2,6,23,0.55);
+      z-index:1000;
+      backdrop-filter: blur(6px);
+      border:1px solid rgba(255,255,255,0.03);
+    }
+    .nav-btn{
+      display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:28px;cursor:pointer;color:var(--muted);font-weight:800;
+    }
+    .nav-btn.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#071029;box-shadow:0 12px 26px rgba(179,0,0,0.14)}
+    .nav-icon{width:24px;height:24px;display:inline-block}
+
+    /* ====== LOGIN STYLES ====== */
+    .login-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.65));z-index:10000}
+    .login-card{width:420px;max-width:95%;background:linear-gradient(180deg,#081226,#0b1b2a);padding:26px;border-radius:16px;box-shadow:0 40px 120px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.03)}
+    .login-card h2{margin:0 0 6px 0}
+    .login-card p{margin:0 0 18px 0;color:var(--muted)}
+    .field{margin-bottom:12px}
+    .field label{display:block;color:var(--muted);font-size:13px;margin-bottom:6px}
+    .field input{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:rgba(255,255,255,0.02);color:var(--white);outline:none}
+    .row{display:flex;gap:8px;align-items:center}
+    .small-muted{color:var(--muted);font-size:13px}
+    .login-footer{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+    .error-txt{color:#ff8a8a;font-weight:700;margin-top:8px}
+    @media(max-width:640px){
+      .grid{grid-template-columns:1fr}
+      .bottom-nav{left:8px;right:8px}
+    }
+  
+/* ====== FIX: permitir rolar o formulário de login/registro em telas pequenas ====== */
+.login-card{
+  max-height: 82vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 12px;
+}
+/* coloca o cartão mais alto no overlay para facilitar visualização */
+.login-wrap{ align-items: flex-start; padding-top: 30px; padding-bottom: 18px; }
+
+/* destaque mais óbvio para o objetivo principal (qbtn) */
+.qbtn{ border:1px solid rgba(255,255,255,0.06); background:transparent; padding:8px 10px; border-radius:10px; cursor:pointer; white-space:normal; text-align:center; min-width:76px; }
+.qbtn.active{ background: linear-gradient(90deg, var(--accent), var(--accent-2)); color:#071029; border-color:transparent; box-shadow:0 12px 30px rgba(179,0,0,0.12); transform: translateY(-2px); }
+
+/* letras do modal selecionadas ficam vermelhas */
+#lettersWrap .btn.selected { background: linear-gradient(90deg, var(--accent), var(--accent-2)); color:#071029; border-color:transparent; box-shadow:0 10px 24px rgba(179,0,0,0.12); }
+
+/* calendário marcado: mais vermelho e badge vermelha */
+.cal-cell.marked { background: linear-gradient(180deg, rgba(255,20,20,0.06), rgba(60,10,10,0.18)); border-color: rgba(255,30,30,0.28); box-shadow: 0 8px 28px rgba(179,0,0,0.08); }
+.cal-cell.marked .date { color: var(--accent); }
+.cal-cell .cal-badge { background: linear-gradient(90deg, var(--accent), var(--accent-2)); color:#071029; }
+
+/* When selecting a day pill (top), stronger red focus */
+.pill:focus, .pill:active, .pill.active { outline: none; box-shadow: 0 12px 36px rgba(179,0,0,0.18); }
+
+/* ensure letters buttons wrap on small screens */
+@media (max-width:480px){
+  .login-card{ max-height:90vh; padding:18px 14px; border-radius:12px; }
+  .qbtn{ min-width:0; flex:1; }
+}
+
+</style>
+</head>
+<body>
+  <!-- LOGIN OVERLAY -->
+  <div id="loginOverlay" class="login-wrap" aria-hidden="false" role="dialog">
+    <div class="login-card" role="document" aria-labelledby="loginTitle">
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+        <div style="width:54px;height:54px;border-radius:12px;background:linear-gradient(90deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:900;color:#071029;font-size:22px">B</div>
+        <div>
+          <h2 id="loginTitle">Entrar — BodyClick</h2>
+          <p id="loginSub">Faça login ou <a href="javascript:void(0)" id="showRegister" style="color:var(--accent);font-weight:800;text-decoration:none">criar conta</a></p>
+        </div>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <div id="loginForm">
+        <div class="field">
+          <label for="loginUser">Usuário (email)</label>
+          <input id="loginUser" type="email" placeholder="seu email" autocomplete="username" />
+        </div>
+
+        <div class="field">
+          <label for="loginPass">Senha</label>
+          <div style="position:relative">
+            <input id="loginPass" type="password" placeholder="senha" autocomplete="current-password" />
+            <button id="togglePass" style="position:absolute;right:8px;top:8px;padding:6px;border-radius:8px;border:none;background:transparent;color:var(--muted);cursor:pointer">Mostrar</button>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+          <label style="display:flex;align-items:center;gap:8px">
+            <input id="rememberMe" type="checkbox" /> <span class="small-muted">Lembrar-me</span>
+          </label>
+          <a href="javascript:void(0)" id="forgotLink" style="color:var(--muted);font-weight:700;text-decoration:none">Esqueci</a>
+        </div>
+
+        <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+          <button id="loginBtn" class="btn primary" style="width:100%">Entrar</button>
+          <div id="loginError" class="error-txt" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- REGISTER FORM (hidden por padrão) -->
+      <div id="registerForm" style="display:none">
+        <h3 style="margin:0 0 8px 0">Criar conta</h3>
+        <div class="field">
+          <label for="regName">Nome completo</label>
+          <input id="regName" type="text" placeholder="Seu nome" />
+        </div>
+        <div class="field">
+          <label for="regEmail">Email</label>
+          <input id="regEmail" type="email" placeholder="seu@email.com" />
+        </div>
+        <div class="field">
+          <label for="regPass">Senha (min 6)</label>
+          <input id="regPass" type="password" placeholder="senha segura" />
+        </div>
+        <div class="field">
+          <label for="regCPF">CPF</label>
+          <input id="regCPF" type="text" placeholder="000.000.000-00" />
+        </div>
+        <div class="field">
+          <label for="regPhone">Celular (com DDD)</label>
+          <input id="regPhone" type="tel" placeholder="+55 11 9 9999-9999" />
+        </div>
+        <div class="field">
+          <label for="regAge">Idade</label>
+          <input id="regAge" type="number" min="10" max="120" placeholder="idade" />
+        </div>
+        <div class="field">
+          <label for="regSex">Sexo</label>
+          <select id="regSex">
+            <option value="m">Masculino</option>
+            <option value="f">Feminino</option>
+            <option value="o">Outro</option>
+          </select>
+        </div>
+        <div class="field" style="display:flex;gap:8px">
+          <div style="flex:1">
+            <label for="regWeight">Peso (kg)</label>
+            <input id="regWeight" type="number" min="20" max="400" step="0.1" placeholder="kg" />
+          </div>
+          <div style="flex:1">
+            <label for="regHeight">Altura (cm)</label>
+            <input id="regHeight" type="number" min="90" max="250" step="0.1" placeholder="cm" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="regExperience">Experiência (academia)</label>
+          <select id="regExperience">
+            <option value="none">Nenhuma</option>
+            <option value="beginner">Iniciante</option>
+            <option value="intermediate">Intermediário</option>
+            <option value="advanced">Avançado</option>
+          </select>
+        </div>
+
+        <!-- Questionário simplificado -->
+        <div style="margin-top:6px">
+          <label style="display:block;color:var(--muted);margin-bottom:6px">Objetivo principal</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn ghost qbtn" data-goal="gain">Ficar forte (ganhar massa)</button>
+            <button class="btn ghost qbtn" data-goal="lose">Emagrecer</button>
+            <button class="btn ghost qbtn" data-goal="define">Definir</button>
+            <button class="btn ghost qbtn" data-goal="senior">Mais calmo (idoso)</button>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+          <div style="flex:1">
+            <label style="display:block;color:var(--muted);margin-bottom:6px">Quantos dias/semana pretende treinar?</label>
+            <select id="regDays">
+              <option value="2">2</option>
+              <option value="3" selected>3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="regError" class="error-txt" style="display:none;margin-top:8px"></div>
+
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button id="registerBtn" class="btn primary" style="flex:1">Criar conta e entrar</button>
+          <button id="cancelRegister" class="btn ghost" style="flex:1">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- END LOGIN OVERLAY --><!-- APP (hidden until login) -->
+  <div id="app" style="display:none">
+    <div class="wrap" id="appWrap">
+      <header>
+        <div class="brand">
+          <div class="logo">B</div>
+          <div class="title">
+            <h1>BodyClick — <span style="color:var(--accent)">Biel</span></h1>
+            <p>App offline de treino — com som, partículas e calendário.</p>
+          </div>
+        </div>
+        <div id="logoutBtn" class="badge">Sair</div>
+      </header>
+
+      <div class="grid">
+        <main id="mainArea">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+              <div style="min-width:0">
+                <div style="color:var(--muted);font-size:13px">Treino atual</div>
+                <div id="currentTitle" style="font-weight:800;font-size:16px;">Segunda – Peito + Tríceps</div>
+              </div>
+              <div style="text-align:right;color:var(--muted);min-width:120px">
+                <div style="font-size:13px">Peso: <strong style="color:#fff">Indefinido</strong></div>
+                <div style="font-size:13px">Objetivo: <strong style="color:#fff">+massa</strong></div>
+              </div>
+            </div>
+
+            <div style="margin-top:14px" class="days" id="daysRow"></div>
+
+            <div style="margin-top:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+              <div style="flex:1;min-width:0">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <div style="color:var(--muted);font-size:13px">Progresso hoje</div>
+                  <div id="todayCount" style="font-weight:800">0/0</div>
+                </div>
+                <div style="margin-top:8px" class="progress-bar"><div class="progress-fill" id="progressBar"></div></div>
+              </div>
+
+              <!-- export/reset area simplified (export/json removed as requested) -->
+              <div style="width:160px;flex:0 0 160px">
+                <button class="btn ghost" id="resetBtn" style="width:100%;">Resetar Semana</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="exerciseList" style="margin-top:14px"></div>
+
+          <div class="card" style="margin-top:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-weight:800">Timer do treino</div>
+                <div style="color:var(--muted);font-size:13px">Use entre séries</div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <button class="btn ghost" id="startTimer">Iniciar 60s</button>
+                <div id="timerDisplay" style="color:var(--muted);font-weight:800">00:00</div>
+              </div>
+            </div>
+          </div>
+
+        </main>
+
+        <aside id="rightArea">
+          <div class="card">
+            <h3 style="margin-top:0">Instruções rápidas</h3>
+            <ol style="color:var(--muted);font-size:13px;padding-left:18px;margin:8px 0">
+              <li>Escolhe o dia no topo.</li>
+              <li>Clica no link do vídeo pra ver a execução.</li>
+              <li>Marca o checkbox quando terminar o exercício.</li>
+              <li>Progresso salva no aparelho (offline).</li>
+            </ol>
+            <hr style="border:none;border-top:1px solid rgba(255,255,255,0.03);margin:12px 0"/>
+
+            <div style="margin-top:12px">
+              <div class="tabs">
+                <button id="tab-program" class="active">Programa</button>
+                <button id="tab-calendar">Calendário</button>
+              </div>
+
+              <div id="program-area">
+                <div style="color:var(--muted);font-size:14px">Escolha um dia e marque os exercícios.</div>
+                <div style="display:flex;justify-content:space-between;margin-top:12px;align-items:center">
+                  <div style="color:var(--muted)">Dias marcados no mês</div>
+                  <div class="btn primary" id="monthCount" style="padding:8px 10px;font-weight:800">0</div>
+                </div>
+              </div>
+
+              <div id="calendar-area" style="display:none">
+                <div class="calendar">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                    <div><strong id="calMonthLabel"></strong></div>
+                    <div>
+                      <button id="calPrev" class="btn ghost" style="margin-right:6px">◀</button>
+                      <button id="calNext" class="btn ghost">▶</button>
+                    </div>
+                  </div>
+                  <div class="cal-grid" id="calGrid"></div>
+                  <div class="cal-legend">
+                    <div style="color:var(--muted)">Clique no dia para marcar qual série você fez</div>
+                    <div><strong id="monthCompleted">0</strong> dias</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </aside>
+      </div>
+
+      <footer>
+        <div style="color:var(--muted);font-size:13px">App offline — use "Adicionar à Tela de Início"</div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Particles canvas -->
+  <canvas id="particlesCanvas"></canvas>
+
+  <!-- Generic modal backdrop -->
+  <div id="genericModalBackdrop" class="modal-backdrop" aria-hidden="true">
+    <div id="genericModal" class="modal" role="dialog" aria-modal="true">
+      <div class="head">
+        <div id="genericIcon" class="icon info">i</div>
+        <div style="flex:1">
+          <h3 id="genericTitle">Título</h3>
+          <p id="genericText">Texto explicativo</p>
+        </div>
+      </div>
+      <div class="actions" id="genericActions"></div>
+    </div>
+  </div>
+
+  <!-- Mark modal -->
+  <div id="markModalBackdrop" class="modal-backdrop" aria-hidden="true">
+    <div id="markModal" class="modal" role="dialog" aria-modal="true" style="width:360px">
+      <div class="head">
+        <div class="icon info">✍️</div>
+        <div style="flex:1">
+          <h3 id="markTitle">Marcar dia</h3>
+          <p id="markSubtitle" style="color:var(--muted);margin:6px 0 0">Escolhe qual série você fez nesse dia.</p>
+        </div>
+      </div>
+
+      <div style="margin-top:14px">
+        <div class="letters" id="lettersWrap" style="display:flex;gap:8px"></div>
+        <div class="small-muted" style="margin-top:8px;color:var(--muted)">As marcações ficam salvas mesmo se resetar os checks da semana.</div>
+      </div>
+
+      <div class="actions" style="margin-top:16px">
+        <button class="btn ghost" id="markRemoveBtn">Remover</button>
+        <button class="btn primary" id="markSaveBtn">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav" id="bottomNav" style="display:none">
+    <div id="navHome" class="nav-btn active" title="Programa (home)">
+      <!-- dumbbell / arm svg -->
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 12h2v2H3v-2zm16-6h2v8h-2V6zM7 8h2v8H7V8zm8 4h2v4h-2v-4z" fill="#fff" opacity="0.85"/>
+      </svg>
+      <div style="font-size:13px">Treino</div>
+    </div>
+
+    <div id="navCalendar" class="nav-btn" title="Calendário">
+      <!-- calendar svg -->
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 10h5v5H7zM3 5h18v16H3zM16 3v4M8 3v4" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+      </svg>
+      <div style="font-size:13px">Calendário</div>
+    </div>
+  </div>
+
+<script>
+/* ---------------------------
+  AUTENTICAÇÃO LOCAL: registro, login e contato de suporte
+  --------------------------- */
+// storage keys
+const USERS_KEY = 'bodyclick_users_v1';
+const CURRENT_USER_KEY = 'bodyclick_current_user_v1';
+const AUTH_KEY = 'bodyclick_auth_token_v1';
+const SUPPORT_EMAIL = 'suporte@seudominio.com'; // <-- substitua pelo seu email real
+
+// DOM refs used in auth flows (some already exist)
+const loginUser = document.getElementById('loginUser');
+const loginPass = document.getElementById('loginPass');
+const loginBtn = document.getElementById('loginBtn');
+const togglePass = document.getElementById('togglePass');
+const rememberMe = document.getElementById('rememberMe');
+const loginError = document.getElementById('loginError');
+
+// register dom
+const showRegisterBtn = document.getElementById('showRegister');
+const loginFormEl = document.getElementById('loginForm');
+const registerFormEl = document.getElementById('registerForm');
+const cancelRegisterBtn = document.getElementById('cancelRegister');
+const qButtons = document.querySelectorAll('.qbtn');
+let selectedGoal = null;
+
+// helper storage functions
+function loadUsers(){ const raw = localStorage.getItem(USERS_KEY); return raw ? JSON.parse(raw) : {}; }
+function saveUsers(obj){ localStorage.setItem(USERS_KEY, JSON.stringify(obj)); }
+function saveCurrentUser(email){ localStorage.setItem(CURRENT_USER_KEY, email); }
+function getCurrentUser(){ return localStorage.getItem(CURRENT_USER_KEY); }
+function clearCurrentUser(){ localStorage.removeItem(CURRENT_USER_KEY); }
+function setAuthToken(token, remember){ if (remember) localStorage.setItem(AUTH_KEY, token); else sessionStorage.setItem(AUTH_KEY, token); }
+function getAuthToken(){ return localStorage.getItem(AUTH_KEY) || sessionStorage.getItem(AUTH_KEY); }
+function clearAuth(){ localStorage.removeItem(AUTH_KEY); sessionStorage.removeItem(AUTH_KEY); }
+
+// minimal encoding for password (not secure for production)
+function simpleHash(p){ try { return btoa(p); } catch(e){ return p; } }
+
+// find user
+function findUser(email){ const users = loadUsers(); return users[email] || null; }
+
+// assign plan type based on profile
+function assignPlanType(profile){
+  const weight = parseFloat(profile.weight) || 0;
+  const heightM = (parseFloat(profile.height) || 0) / 100;
+  const bmi = heightM > 0 ? weight / (heightM * heightM) : 0;
+  const age = parseInt(profile.age || 0, 10);
+  const goal = profile.goal;
+  if (age >= 60) return {type:'senior', label:'Série Senior (leve)', reason:`idade ${age}`};
+  if (goal === 'gain') return {type:'bulking', label:'Ganho de Massa', reason:'objetivo: ganhar massa'};
+  if (goal === 'lose') return {type:'cutting', label:'Emagrecimento', reason:'objetivo: perder peso'};
+  if (goal === 'define') return {type:'define', label:'Definição', reason:'objetivo: definir'};
+  if (bmi > 28) return {type:'cutting', label:'Emagrecimento', reason:`BMI ${bmi.toFixed(1)}`};
+  if (bmi < 21) return {type:'bulking', label:'Ganho de Massa', reason:`BMI ${bmi.toFixed(1)}`};
+  return {type:'define', label:'Definição', reason:`BMI ${bmi.toFixed(1)}`};
+}
+
+// toggle password visibility
+if (togglePass) togglePass.addEventListener('click', (e)=>{ if (loginPass.type === 'password'){ loginPass.type = 'text'; togglePass.innerText = 'Ocultar'; } else { loginPass.type = 'password'; togglePass.innerText = 'Mostrar'; } });
+
+// register UI behaviour
+if (showRegisterBtn){
+  showRegisterBtn.addEventListener('click', (e)=>{ e.preventDefault(); loginFormEl.style.display='none'; registerFormEl.style.display='block'; });
+}
+if (cancelRegisterBtn){
+  cancelRegisterBtn.addEventListener('click', (e)=>{ e.preventDefault(); registerFormEl.style.display='none'; loginFormEl.style.display='block'; });
+}
+qButtons.forEach(btn=> btn.addEventListener('click', (ev)=>{ qButtons.forEach(b=>b.classList.remove('active')); btn.classList.add('active'); selectedGoal = btn.dataset.goal; }));
+
+// Register handler (uses CPF and phone fields)
+const registerBtn = document.getElementById('registerBtn');
+if (registerBtn) registerBtn.addEventListener('click', ()=>{
+  const name = (document.getElementById('regName').value || '').trim();
+  const email = (document.getElementById('regEmail').value || '').trim().toLowerCase();
+  const pass = (document.getElementById('regPass').value || '');
+  const cpf = (document.getElementById('regCPF').value || '').trim();
+  const phone = (document.getElementById('regPhone').value || '').trim();
+  const age = document.getElementById('regAge').value;
+  const sex = document.getElementById('regSex').value;
+  const weight = document.getElementById('regWeight').value;
+  const height = document.getElementById('regHeight').value;
+  const experience = document.getElementById('regExperience').value;
+  const days = document.getElementById('regDays').value;
+
+  const errEl = document.getElementById('regError'); errEl.style.display='none'; errEl.innerText='';
+  if (!name || !email || !pass){ errEl.style.display='block'; errEl.innerText='Nome, email e senha são obrigatórios.'; return; }
+  if (pass.length < 6){ errEl.style.display='block'; errEl.innerText='Senha precisa ter no mínimo 6 caracteres.'; return; }
+  if (!selectedGoal){ errEl.style.display='block'; errEl.innerText='Selecione um objetivo no questionário.'; return; }
+
+  const users = loadUsers();
+  if (users[email]){ errEl.style.display='block'; errEl.innerText='Já existe uma conta com esse email. Faça login.'; return; }
+
+  const profile = {
+    name, email, passHash: simpleHash(pass), cpf, phone,
+    age: parseInt(age||0,10), sex, weight:parseFloat(weight||0), height:parseFloat(height||0),
+    experience, daysPerWeek: parseInt(days||3,10), goal:selectedGoal, createdAt:new Date().toISOString()
+  };
+  profile.plan = assignPlanType(profile);
+  users[email]=profile;
+  saveUsers(users);
+  // Auto-login: set token and current user
+  const token = btoa(`${email}:${Date.now()}`);
+  setAuthToken(token, true);
+  saveCurrentUser(email);
+
+  // play success sound
+  try{ soundSuccess.currentTime = 0; soundSuccess.play(); }catch(e){}
+
+  // Show a nicer modal with logo and message, then redirect to app after 1.2s
+  const modalHtml = document.getElementById('genericModal');
+  // customize modal content
+  genericIcon.className = 'icon success';
+  genericIcon.innerText = '✔';
+  genericTitle.innerText = 'Cadastro confirmado!';
+  genericText.innerText = `Bem-vindo, ${name}! Sua conta foi criada com sucesso. Preparando seu painel...`;
+  genericActions.innerHTML = '';
+  genericBackdrop.style.display = 'flex';
+  setTimeout(()=> genericModal.classList.add('show'), 10);
+
+  // add a visual B logo inside the modal (small)
+  // After short delay, hide overlay and show app
+  setTimeout(()=>{
+    genericModal.classList.remove('show');
+    setTimeout(()=> genericBackdrop.style.display = 'none', 220);
+    // clear register form UI and proceed to app
+    finishRegister();
+  }, 1200);
+});
+
+function finishRegister(){
+  selectedGoal = null;
+  document.querySelectorAll('.qbtn').forEach(b=>b.classList.remove('active'));
+  registerFormEl.style.display='none';
+  loginFormEl.style.display='block';
+  document.getElementById('loginUser').value = getCurrentUser() || '';
+  hideLoginShowApp();
+}
+
+// Login handler (checks stored users)
+
+// Verbose login for debugging and reliable flow
+function doLogin(){
+  try{
+    const uRaw = (document.getElementById('loginUser') && document.getElementById('loginUser').value) || '';
+    const pRaw = (document.getElementById('loginPass') && document.getElementById('loginPass').value) || '';
+    const u = uRaw.trim().toLowerCase();
+    const p = pRaw;
+    // quick on-screen debug panel if available
+    try{ debugLog && debugLog('Attempt login: '+u); }catch(e){}
+    if (!u || !p){
+      showLoginError('Preenche usuário (email) e senha.');
+      return;
+    }
+    // load users and check
+    let users = {};
+    try{ users = loadUsers() || {}; } catch(e){ console.error('loadUsers error', e); showLoginError('Erro leitura usuários'); return; }
+    const stored = users[u];
+    // prepare debug text
+    let debugLines = [];
+    debugLines.push('entrada:' + u);
+    debugLines.push('usuário encontrado:' + (stored ? 'SIM' : 'NAO'));
+    if (!stored){
+      // show helpful modal offering to open register form
+      showModal({type:'warn', title:'Conta não encontrada', text:'Não encontramos essa conta. Deseja criar agora?', buttons:[
+        {label:'Ir para criar conta', handler:()=>{ loginFormEl.style.display='none'; registerFormEl.style.display='block'; closeModal(); }},
+        {label:'Fechar', handler:()=>closeModal(), className:'ghost'}
+      ]});
+      return;
+    }
+    debugLines.push('passHash armazenada: ' + (stored.passHash ? stored.passHash.substring(0,6)+'...' : 'n/a'));
+    const attemptHash = simpleHash(p);
+    debugLines.push('hash tentativa: ' + (attemptHash ? attemptHash.substring(0,6)+'...' : 'n/a'));
+    // compare
+    if (stored.passHash !== attemptHash){
+      debugLines.push('comparação: diferente');
+      // show modal with hint
+      showModal({type:'warn', title:'Senha incorreta', text:'A senha informada não confere. Deseja redefinir?', buttons:[
+        {label:'Tentar denovo', handler:()=>{ closeModal(); document.getElementById('loginPass').focus(); }},
+        {label:'Esqueci', handler:()=>{ closeModal(); showModal({type:'info', title:'Suporte', text:'Use o botão Contato Suporte após logar ou crie uma nova conta.', buttons:[{label:'Fechar', handler:()=>closeModal()}]}); }, className:'ghost'}
+      ]});
+      try{ debugLog && debugLog(debugLines.join(' | ')); }catch(e){}
+      return;
+    }
+    debugLines.push('comparação: igual');
+    // success: set token and current user and show app
+    const token = btoa(u+':'+Date.now());
+    setAuthToken(token, document.getElementById('rememberMe') && document.getElementById('rememberMe').checked);
+    saveCurrentUser(u);
+    document.getElementById('loginError').style.display='none';
+    try{ soundSuccess.currentTime = 0; soundSuccess.play(); }catch(e){}
+    // friendly modal then open app
+    genericIcon.className = 'icon success'; genericIcon.innerText = 'B';
+    genericTitle.innerText = 'Login confirmado';
+    genericText.innerText = 'Bem-vindo de volta, '+(stored.name || u)+'! Abrindo painel...';
+    genericActions.innerHTML = '';
+    genericBackdrop.style.display = 'flex';
+    setTimeout(()=> genericModal.classList.add('show'), 10);
+    setTimeout(()=>{ genericModal.classList.remove('show'); setTimeout(()=> genericBackdrop.style.display='none',220); hideLoginShowApp(); }, 900);
+    try{ debugLog && debugLog('Login success for '+u); }catch(e){}
+  }catch(err){
+    console.error('doLogin error', err);
+    showLoginError('Erro interno no login. Abre o console para mais detalhes.');
+  }
+}
+// override previous listeners if any
+if (loginBtn) { try{ loginBtn.removeEventListener('click', doLogin);}catch(e){}; loginBtn.addEventListener('click', doLogin); }
+if (loginPass) loginPass.addEventListener('keydown', (e)=>{ if (e.key==='Enter') doLogin(); });
+
+function showLoginError(msg){ const loginError = document.getElementById('loginError'); loginError.innerText=msg; loginError.style.display='block'; const card=document.querySelector('.login-card'); if(card) card.animate([{ transform: 'translateX(-6px)' },{ transform: 'translateX(6px)' },{ transform: 'translateX(0)' }], { duration:300, easing:'ease' }); }
+
+// helper to get current profile
+function getCurrentProfile(){ const email = getCurrentUser(); return email ? findUser(email) : null; }
+
+// SUPPORT: method to prepare contact info for support (mailto + copy to clipboard + download)
+function contactSupport_preparePayload(){
+  const p = getCurrentProfile();
+  if (!p){ showModal({type:'warn', title:'Não logado', text:'Faça login para enviar os seus dados ao suporte.', buttons:[{label:'Ok', handler:()=>closeModal()}]}); return; }
+  const body = [
+    `Nome: ${p.name}`,
+    `Email: ${p.email}`,
+    `CPF: ${p.cpf || ''}`,
+    `Celular: ${p.phone || ''}`,
+    `Idade: ${p.age || ''}`,
+    `Objetivo: ${p.goal || ''}`,
+    `Plano sugerido: ${(p.plan && p.plan.label) || ''}`,
+    ``,
+    `--- Dados técnicos gerados em ${new Date().toISOString()} ---`
+  ].join('\n');
+  // open mailto prefilled
+  const subject = encodeURIComponent('Suporte BodyClick - contato usuário');
+  const bodyEnc = encodeURIComponent(body);
+  const mailto = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${bodyEnc}`;
+  // copy to clipboard and prompt download
+  navigator.clipboard && navigator.clipboard.writeText(body).catch(()=>{});
+  // create blob for download
+  const blob = new Blob([body], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  // show modal with options
+  showModal({
+    type:'info',
+    title:'Enviar dados para o suporte',
+    text:'Se quiser, o app abrirá seu cliente de email com os dados prontos. Os dados também foram copiados para sua área de transferência. Você pode baixar um arquivo com os dados localmente.',
+    buttons:[
+      {label:'Abrir email', handler:()=>{ window.location.href = mailto; }, className:'primary'},
+      {label:'Baixar arquivo', handler:()=>{ const a=document.createElement('a'); a.href=url; a.download=`bodyclick_contact_${p.email.replace(/[@.]/g,'_')}.txt`; a.click(); URL.revokeObjectURL(url); closeModal(); }, className:'ghost'},
+      {label:'Fechar', handler:()=>closeModal(), className:'ghost'}
+    ]
+  });
+}
+
+// expose small UI: Add "Contato Suporte" button into the right area card header
+function ensureSupportButton(){
+  try{
+    const right = document.getElementById('rightArea');
+    if(!right) return;
+    if (document.getElementById('supportContactBtn')) return;
+    const btn = document.createElement('button');
+    btn.id = 'supportContactBtn';
+    btn.className = 'btn ghost';
+    btn.style.marginTop = '10px';
+    btn.innerText = 'Contato Suporte';
+    btn.onclick = contactSupport_preparePayload;
+    // append near the bottom of instructions
+    const card = right.querySelector('.card');
+    if(card) card.appendChild(btn);
+  }catch(e){console.error(e);}
+}
+// call on app init if logged in
+if (getAuthToken()){
+  if (!getCurrentUser()) saveCurrentUser('biel');
+}
+window.addEventListener('load', ()=> setTimeout(()=> ensureSupportButton(), 600));/* ---------------------------
+   Áudios (check & success)
+----------------------------*/
+const soundCheck = new Audio("https://assets.mixkit.co/active_storage/sfx/1792/1792-preview.mp3"); // tick
+const soundSuccess = new Audio("https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3"); // success
+soundCheck.volume = 0.45;
+soundSuccess.volume = 0.7;
+
+/* ============================
+   Particle system (canvas overlay)
+============================ */
+const canvas = document.getElementById('particlesCanvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
+let dpr = window.devicePixelRatio || 1;
+function resizeCanvas(){ dpr = window.devicePixelRatio || 1; canvas.width = window.innerWidth * dpr; canvas.height = window.innerHeight * dpr; canvas.style.width = window.innerWidth + 'px'; canvas.style.height = window.innerHeight + 'px'; ctx.setTransform(dpr,0,0,dpr,0,0); }
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+function random(min,max){ return Math.random()*(max-min)+min; }
+function emitParticles(x,y,color='#ff5a5a',count=18,spread=120,speed=4){
+  for(let i=0;i<count;i++){
+    const angle = random(0,Math.PI*2);
+    const speedRnd = random(speed*0.4,speed*1.4);
+    particles.push({ x, y, vx: Math.cos(angle)*speedRnd, vy: Math.sin(angle)*speedRnd - random(0,1.6), life: random(700,1100), born: performance.now(), size: random(4,10), color: color, rot: random(0,Math.PI*2) });
+  }
+}
+function updateParticles(now){
+  particles = particles.filter(p => now - p.born < p.life);
+  ctx.clearRect(0,0, canvas.width/dpr, canvas.height/dpr);
+  particles.forEach(p=>{
+    const t = (now - p.born)/p.life;
+    p.vy += 0.03;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.rot += 0.1;
+    ctx.save();
+    ctx.globalAlpha = 1 - t;
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.ellipse(0,0, p.size*(1 - t), p.size*(1 - t)*0.8, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+let rafId = null;
+function loop(now){ updateParticles(now); rafId = requestAnimationFrame(loop); }
+rafId = requestAnimationFrame(loop);
+function getOffset(el){ const r = el.getBoundingClientRect(); return {x: r.left + r.width/2 + window.scrollX, y: r.top + r.height/2 + window.scrollY, left:r.left, top:r.top}; }
+function tinyBurstFromElement(el){ const off = getOffset(el); emitParticles(off.x, off.y, '#ffd166', 12, 60, 3); }
+
+/* ============================
+   Plan data
+============================ */
+const plan = {
+  'Segunda – Peito + Tríceps': [
+    {id: 's1', name:'Supino reto', sets:'4x 8–12', video:''},
+    {id: 's2', name:'Supino inclinado halter', sets:'3x 8–12', video:''},
+    {id: 's3', name:'Crucifixo com halter', sets:'3x 12', video:''},
+    {id: 's5', name:'Crucifixo Maquina', sets:'3x 12–15', video:''},
+    {id: 's6', name:'Tríceps corda', sets:'3x 10–12', video:''},
+    {id: 's7', name:'Tríceps testa', sets:'3x 10–12', video:''}
+  ],
+  'Terça – Costas + Bíceps': [
+    {id: 't1', name:'Puxada frente / Barra fixa', sets:'4x 8–12', video:''},
+    {id: 't2', name:'Remada baixa', sets:'3x 10–12', video:''},
+    {id: 't3', name:'Remada unilateral', sets:'3x 10–12', video:''},
+    {id: 't4', name:'Puxada neutra', sets:'3x 12', video:''},
+    {id: 't5', name:'Rosca direta', sets:'3x 8–12', video:''},
+    {id: 't6', name:'Rosca alternada', sets:'3x 10–12', video:''}
+  ],
+  'Quinta – Pernas + Glúteo': [
+    {id: 'q1', name:'Agachamento Smith', sets:'4x 8–12', video:''},
+    {id: 'q2', name:'Leg press 45°', sets:'4x 10–12', video:''},
+    {id: 'q3', name:'Cadeira extensora (drop set)', sets:'3x 12–15', video:''},
+    {id: 'q4', name:'Mesa flexora', sets:'3x 12', video:''},
+    {id: 'q5', name:'Stiff halter', sets:'3x 10–12', video:''},
+    {id: 'q7', name:'Panturrilha em pé', sets:'4x 15–20', video:''}
+  ],
+  'Sexta – Ombro + Trapézio + Abdômen': [
+    {id: 'f1', name:'Elevação lateral', sets:'4x 12', video:''},
+    {id: 'f2', name:'Desenvolvimento militar', sets:'3x 8–12', video:''},
+    {id: 'f3', name:'Elevação frontal', sets:'3x 12', video:''},
+    {id: 'f4', name:'Remada alta', sets:'3x 10', video:''},
+    {id: 'f5', name:'Encolhimento trapézio', sets:'3x 12', video:''},
+    {id: 'f6', name:'Prancha isometria', sets:'3x 30s', video:''},
+    {id: 'f7', name:'Abdominal infra', sets:'3x 15', video:''}
+  ]
+};
+
+/* ============================
+   Storage keys & helpers
+============================ */
+const STORAGE_KEY = 'treino_biel_v3';
+const CAL_KEY = 'treino_biel_calendar_v1';
+function loadData(){ const raw = localStorage.getItem(STORAGE_KEY); return raw? JSON.parse(raw) : {}; }
+function saveData(d){ localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+function loadCal(){ const raw = localStorage.getItem(CAL_KEY); return raw? JSON.parse(raw) : {}; }
+function saveCal(c){ localStorage.setItem(CAL_KEY, JSON.stringify(c)); }
+
+/* ============================
+   App UI refs & state
+============================ */
+const days = Object.keys(plan);
+const daysRow = document.getElementById('daysRow');
+const exerciseList = document.getElementById('exerciseList');
+const todayCount = document.getElementById('todayCount');
+const progressBar = document.getElementById('progressBar');
+const currentTitle = document.getElementById('currentTitle');
+let selectedDay = days[0];
+let calDate = new Date();
+
+/* Generic modal elements */
+const genericBackdrop = document.getElementById('genericModalBackdrop');
+const genericModal = document.getElementById('genericModal');
+const genericIcon = document.getElementById('genericIcon');
+const genericTitle = document.getElementById('genericTitle');
+const genericText = document.getElementById('genericText');
+const genericActions = document.getElementById('genericActions');
+
+/* Mark modal elements */
+const markBackdrop = document.getElementById('markModalBackdrop');
+const lettersWrap = document.getElementById('lettersWrap');
+const markSaveBtn = document.getElementById('markSaveBtn');
+const markRemoveBtn = document.getElementById('markRemoveBtn');
+const markTitle = document.getElementById('markTitle');
+const markSubtitle = document.getElementById('markSubtitle');
+
+let activeMarkDate = null;
+let activeSelectedLetter = null;
+
+/* ============================
+   Modal helpers
+============================ */
+function showModal({type='info', title='', text='', buttons=[{label:'OK',className:'primary', handler:()=>closeModal()}], autoClose=0}){
+  genericIcon.className = 'icon ' + (type==='success'?'success': type==='warn'?'warn' : type==='danger'?'danger':'info');
+  genericIcon.innerText = type==='success'?'✔': type==='warn'?'!': type==='danger'?'✖':'i';
+  genericTitle.innerText = title;
+  genericText.innerText = text;
+  genericActions.innerHTML = '';
+  buttons.forEach(b=>{
+    const btn = document.createElement('button');
+    btn.className = 'btn ' + (b.className?b.className:'ghost');
+    btn.innerText = b.label;
+    btn.onclick = ()=>{ try{ b.handler(); } catch(e){ console.error(e); } };
+    genericActions.appendChild(btn);
+  });
+  genericBackdrop.style.display = 'flex';
+  setTimeout(()=> genericModal.classList.add('show'), 10);
+  if (autoClose>0) setTimeout(()=> closeModal(), autoClose);
+}
+function closeModal(){ genericModal.classList.remove('show'); setTimeout(()=> genericBackdrop.style.display = 'none', 260); }
+
+/* ============ Mark modal functions ============ */
+const LETTERS = [
+  {key:'S', label:'Segunda'},
+  {key:'T', label:'Terça'},
+  {key:'Q', label:'Quarta'},
+  {key:'Qi', label:'Quinta'},
+  {key:'Se', label:'Sexta'}
+];
+
+function buildLetterButtons(){
+  lettersWrap.innerHTML = '';
+  LETTERS.forEach(l=>{
+    const b = document.createElement('button');
+    b.className = 'btn ghost';
+    b.innerText = l.key;
+    b.style.flex = '1';
+    b.onclick = ()=> {
+      activeSelectedLetter = l.key;
+      Array.from(lettersWrap.children).forEach(x=>x.classList.remove('selected'));
+      b.classList.add('selected');
+    };
+    lettersWrap.appendChild(b);
+  });
+}
+
+function openMarkModal(dateKey){
+  activeMarkDate = dateKey;
+  activeSelectedLetter = null;
+  buildLetterButtons();
+  const cal = loadCal();
+  if (cal[dateKey]){
+    activeSelectedLetter = cal[dateKey];
+    Array.from(lettersWrap.children).forEach(x=>{ if (x.innerText === cal[dateKey]) x.classList.add('selected'); });
+  }
+  markTitle.innerText = 'Marcar dia';
+  markSubtitle.innerText = 'Data: ' + dateKey;
+  markBackdrop.style.display = 'flex';
+  setTimeout(()=> document.getElementById('markModal').classList.add('show'), 10);
+}
+function closeMarkModal(){ document.getElementById('markModal').classList.remove('show'); setTimeout(()=> markBackdrop.style.display = 'none', 220); }
+
+markSaveBtn.onclick = ()=>{
+  if (!activeSelectedLetter){
+    showModal({type:'warn', title:'Escolha uma letra', text:'Seleciona S/T/Q/Qi/Se antes de salvar.', buttons:[{label:'Entendi', handler:()=>closeModal()}]});
+    return;
+  }
+  const cal = loadCal();
+  cal[activeMarkDate] = activeSelectedLetter;
+  saveCal(cal);
+  closeMarkModal();
+  renderCalendar(calDate);
+  updateMonthCount();
+
+  const cell = findCalendarCellByDate(activeMarkDate);
+  if (cell) {
+    const off = cell.getBoundingClientRect();
+    emitParticles(off.left + off.width/2 + window.scrollX, off.top + off.height/2 + window.scrollY, '#ffd166', 28, 160, 5);
+  } else { emitParticles(window.innerWidth/2, window.innerHeight/2, '#ffd166', 28, 160, 5); }
+  try{ soundSuccess.currentTime = 0; soundSuccess.play(); }catch(e){}
+  showModal({type:'success', title:'Dia marcado!', text:`Treino: ${activeSelectedLetter} salvo em ${activeMarkDate}`, buttons:[{label:'Fechar', handler:()=>closeModal(), className:'primary'}], autoClose:1800});
+};
+
+markRemoveBtn.onclick = ()=>{
+  const cal = loadCal();
+  if (cal[activeMarkDate]){
+    delete cal[activeMarkDate];
+    saveCal(cal);
+    closeMarkModal();
+    renderCalendar(calDate);
+    updateMonthCount();
+    try{ soundSuccess.currentTime = 0; soundSuccess.play(); }catch(e){}
+    const cell = findCalendarCellByDate(activeMarkDate);
+    if (cell) {
+      const off = cell.getBoundingClientRect();
+      emitParticles(off.left + off.width/2 + window.scrollX, off.top + off.height/2 + window.scrollY, '#ff7b7b', 20, 120, 4);
+    }
+    showModal({type:'info', title:'Removido', text:`Marca removida de ${activeMarkDate}`, buttons:[{label:'Fechar',handler:()=>closeModal(),className:'primary'}], autoClose:1500});
+  } else {
+    showModal({type:'warn', title:'Nada para remover', text:'Não havia marca nesse dia.', buttons:[{label:'Ok',handler:()=>closeModal()}]});
+  }
+};
+
+/* helper find calendar cell */
+function findCalendarCellByDate(dateKey){
+  const calGrid = document.getElementById('calGrid');
+  const cells = calGrid.querySelectorAll('.cal-cell');
+  for(const c of cells){ if (c.__dateKey === dateKey) return c; }
+  return null;
+}
+
+/* ============ Build days pills & render exercises ============ */
+/* buildDays ensures only the selected pill is active (red) */
+function buildDays(){
+  daysRow.innerHTML = '';
+  days.forEach(d => {
+    const dayLabel = d.split(' – ')[0];
+    const btn = document.createElement('button');
+
+    btn.className = 'pill';
+    btn.setAttribute('role', 'button');
+    btn.setAttribute('aria-pressed', 'false');
+    btn.textContent = dayLabel;
+
+    if (d === selectedDay){
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+    }
+
+    btn.onclick = () => {
+      Array.from(daysRow.children).forEach(x => {
+        x.classList.remove('active');
+        x.setAttribute('aria-pressed','false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed','true');
+
+      selectedDay = d;
+      render();
+      btn.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
+    };
+
+    daysRow.appendChild(btn);
+  });
+
+  if (currentTitle) currentTitle.textContent = selectedDay;
+}
+
+function toggleDone(id, checkboxEl){
+  const data = loadData();
+  const today = new Date().toISOString().slice(0,10);
+  data[today] = data[today] || {};
+  data[today][id] = !data[today][id];
+  if (Object.keys(data[today]).length === 0) delete data[today];
+  saveData(data);
+  const card = checkboxEl.closest('.exercise');
+  if (card){
+    card.classList.add('pulse');
+    setTimeout(()=> card.classList.remove('pulse'), 480);
+  }
+  render();
+  try{ soundCheck.currentTime = 0; soundCheck.play(); }catch(e){}
+  tinyBurstFromElement(checkboxEl);
+}
+
+function render(){
+  buildDays();
+  const list = plan[selectedDay] || [];
+  exerciseList.innerHTML = '';
+  const data = loadData();
+  const today = new Date().toISOString().slice(0,10);
+  const todayData = data[today] || {};
+
+  list.forEach(ex => {
+    const el = document.createElement('div');
+    el.className = 'exercise card';
+    el.innerHTML = `
+      <div class='ex-left'>
+        <div class='checkwrap'><input type='checkbox' ${todayData[ex.id] ? 'checked':''} data-id='${ex.id}' /></div>
+        <div class='ex-title'><strong>${ex.name}</strong><div class='meta'>${ex.sets} • <a class='video-link' href='#' data-web='${ex.video}' title='Abrir vídeo'>Ver vídeo</a></div></div>
+      </div>
+      <div class='status'>${todayData[ex.id] ? 'feito' : 'pendente'}</div>
+    `;
+    exerciseList.appendChild(el);
+  });
+
+  exerciseList.querySelectorAll('input[type=checkbox]').forEach(ch => {
+    ch.onchange = null;
+    ch.onchange = () => toggleDone(ch.dataset.id, ch);
+    const wrap = ch.closest('.checkwrap');
+    if (wrap && !wrap.dataset.bound){
+      wrap.addEventListener('click', (ev)=> {
+        if (ev.target.tagName.toLowerCase() === 'input') return;
+        ch.checked = !ch.checked;
+        ch.dispatchEvent(new Event('change', {bubbles:true}));
+      });
+      wrap.dataset.bound = '1';
+    }
+  });
+
+  const total = list.length;
+  const done = list.filter(ex => (data[new Date().toISOString().slice(0,10)] || {})[ex.id]).length;
+  todayCount.textContent = `${done}/${total}`;
+  progressBar.style.width = (total ? Math.round(done/total*100) : 0) + '%';
+  updateMonthCount();
+  currentTitle.textContent = selectedDay;
+}
+
+/* ============ Reset ============ */
+document.getElementById('resetBtn').onclick = () => {
+  showModal({
+    type:'warn',
+    title:'Resetar registros?',
+    text:'Isso irá apagar apenas os checkboxes de treino (calendário será preservado). Confirma?',
+    buttons:[
+      {label:'Cancelar', handler:()=>closeModal(), className:'ghost'},
+      {label:'Resetar', handler:()=>{
+         localStorage.removeItem(STORAGE_KEY);
+         render();
+         closeModal();
+         showModal({type:'success', title:'Resetado', text:'Checkboxes removidos (calendário preservado).', buttons:[{label:'Fechar',handler:()=>closeModal(),className:'primary'}], autoClose:1600});
+      }, className:'danger'}
+    ]
+  });
+};
+
+/* ============ Timer ============ */
+let timer = null;
+document.getElementById('startTimer').onclick = () => {
+  if (timer){ clearInterval(timer); timer = null; document.getElementById('timerDisplay').textContent = '00:00'; return; }
+  let sec = 60;
+  document.getElementById('timerDisplay').textContent = '01:00';
+  timer = setInterval(()=> {
+    sec--;
+    document.getElementById('timerDisplay').textContent = String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
+    if (sec <= 0){ clearInterval(timer); timer = null; showModal({type:'success', title:'Timer finalizado', text:'Descanso concluído!', buttons:[{label:'Fechar',handler:()=>closeModal(),className:'primary'}], autoClose:1500}); }
+  }, 1000);
+};
+
+/* ============ Calendar rendering & interactions ============ */
+const calGrid = document.getElementById('calGrid');
+const calMonthLabel = document.getElementById('calMonthLabel');
+const calPrev = document.getElementById('calPrev');
+const calNext = document.getElementById('calNext');
+const monthCompleted = document.getElementById('monthCompleted');
+const monthCountBtn = document.getElementById('monthCount');
+
+function renderCalendar(date){
+  const calData = loadCal();
+  const data = loadData();
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  calGrid.innerHTML = '';
+  const first = new Date(year, month, 1);
+  const startWeekday = first.getDay();
+  for(let i=0;i<startWeekday;i++){ const empty = document.createElement('div'); empty.className='cal-cell'; calGrid.appendChild(empty); }
+  const dim = new Date(year, month+1, 0).getDate();
+  let completedDays = 0;
+  for(let d=1; d<=dim; d++){
+    const dt = new Date(year, month, d);
+    const key = dt.toISOString().slice(0,10);
+    const cell = document.createElement('div'); cell.className='cal-cell';
+    cell.__dateKey = key;
+    const countCheck = (() => {
+      if (!data[key]) return 0;
+      let c = 0;
+      for (const k in data[key]) if (data[key][k]) c++;
+      return c;
+    })();
+    const mark = calData[key];
+    if (mark){ cell.classList.add('marked'); completedDays++; }
+    cell.innerHTML = `<div class="date">${d}</div><div style="margin-top:auto;color:var(--muted);font-size:12px">${countCheck>0?countCheck+' exercício(s)':''}</div>`;
+    if (mark){ const b = document.createElement('div'); b.className='cal-badge'; b.innerText = mark; cell.appendChild(b); }
+    cell.addEventListener('click', ()=> { openMarkModal(key); });
+    calGrid.appendChild(cell);
+  }
+  const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  calMonthLabel.textContent = months[month] + ' ' + year;
+  monthCompleted.textContent = completedDays;
+  monthCountBtn.textContent = completedDays;
+}
+calPrev.addEventListener('click', ()=> { calDate = new Date(calDate.getFullYear(), calDate.getMonth()-1, 1); renderCalendar(calDate); });
+calNext.addEventListener('click', ()=> { calDate = new Date(calDate.getFullYear(), calDate.getMonth()+1, 1); renderCalendar(calDate); });
+
+const tabProgram = document.getElementById('tab-program');
+const tabCalendar = document.getElementById('tab-calendar');
+const programArea = document.getElementById('program-area');
+const calendarArea = document.getElementById('calendar-area');
+
+tabProgram.addEventListener('click', ()=> {
+  programArea.style.display='block';
+  calendarArea.style.display='none';
+  tabProgram.classList.add('active');
+  tabCalendar.classList.remove('active');
+});
+tabCalendar.addEventListener('click', ()=> {
+  programArea.style.display='none';
+  calendarArea.style.display='block';
+  tabProgram.classList.remove('active');
+  tabCalendar.classList.add('active');
+  renderCalendar(new Date());
+});
+
+function updateMonthCount(){
+  const cal = loadCal();
+  const now = new Date();
+  const monthKey = now.toISOString().slice(0,7);
+  let daysCompleted = 0;
+  for (const k in cal){ if (k.startsWith(monthKey)) daysCompleted++; }
+  monthCountBtn.textContent = daysCompleted;
+  monthCompleted.textContent = daysCompleted;
+}
+
+/* ============ Bottom nav behavior ============ */
+const navHome = document.getElementById('navHome');
+const navCalendar = document.getElementById('navCalendar');
+
+function setActiveNav(which){
+  if (which === 'home'){
+    navHome.classList.add('active');
+    navCalendar.classList.remove('active');
+    // show program / main layout
+    document.getElementById('program-area').style.display = 'block';
+    document.getElementById('calendar-area').style.display = 'none';
+    // ensure main layout columns visible
+    document.getElementById('rightArea').style.display = 'block';
+  } else {
+    navHome.classList.remove('active');
+    navCalendar.classList.add('active');
+    document.getElementById('program-area').style.display = 'none';
+    document.getElementById('calendar-area').style.display = 'block';
+    // optionally expand calendar to main area: hide right aside and show calendar full width
+    // we'll keep aside but calendar visible; you can style later to full width if wanted
+    document.getElementById('rightArea').style.display = 'block';
+    renderCalendar(new Date());
+  }
+}
+
+navHome.addEventListener('click', ()=> setActiveNav('home'));
+navCalendar.addEventListener('click', ()=> setActiveNav('calendar'));
+
+/* ============ Init app after login ============ */
+function appInit(){
+  buildDays();
+  render();
+  renderCalendar(new Date());
+  buildLetterButtons();
+  // close modals on ESC
+  document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') { closeMarkModal(); closeModal(); } });
+  // logout visible
+  document.getElementById('logoutBtn').style.display = 'inline-block';
+  // ensure bottom nav visible
+  document.getElementById('bottomNav').style.display = 'flex';
+  setActiveNav('home');
+}
+
+/* Close mark modal when clicking backdrop */
+document.getElementById('markModalBackdrop').addEventListener('click', (e)=>{ if (e.target === document.getElementById('markModalBackdrop')) closeMarkModal(); });
+document.getElementById('genericModalBackdrop').addEventListener('click', (e)=>{ if (e.target === document.getElementById('genericModalBackdrop')) closeModal(); });
+
+
+
+try{
+  const __loginBtn = document.getElementById('loginBtn');
+  if(__loginBtn){ __loginBtn.onclick = function(e){ e.preventDefault(); doLogin(); return false; }; }
+} catch(e){ console.error(e); }
+
+
+function openVideo(e){
+  e && e.preventDefault && e.preventDefault();
+  const a = e.currentTarget || e.target;
+  const web = a && a.getAttribute && a.getAttribute('data-web');
+  if(web){
+    window.open(web, '_blank', 'noopener');
+  } else {
+    showModal({type:'info', title:'Vídeo', text:'Link do vídeo indisponível.'});
+  }
+}
+</script>
+
+<!-- defensive navigation prevention -->
+<script>
+(function(){
+  // prevent anchors navigation inside login overlay
+  document.addEventListener('click', function(e){
+    try{
+      var overlay = document.getElementById('loginOverlay');
+      if(!overlay) return;
+      var el = e.target;
+      while(el && el !== document.body){
+        if(el.tagName && el.tagName.toLowerCase() === 'a'){
+          if (overlay.contains(el)){
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }
+          // also prevent href="#" patterns
+          var href = el.getAttribute && el.getAttribute('href');
+          if (href && href.trim() === '#'){ e.preventDefault(); e.stopPropagation(); return false; }
+        }
+        el = el.parentNode;
+      }
+    }catch(err){}
+  }, true);
+
+  // prevent form submit if overlay open
+  window.addEventListener('submit', function(e){
+    var overlay = document.getElementById('loginOverlay');
+    if(overlay && overlay.style.display !== 'none' && overlay.getAttribute('aria-hidden') !== 'true'){
+      e.preventDefault(); e.stopPropagation(); return false;
+    }
+  }, true);
+
+  // ensure login/register buttons call handlers without default navigation
+  try{
+    var lb = document.getElementById('loginBtn');
+    if(lb) lb.type='button';
+    var rb = document.getElementById('registerBtn');
+    if(rb) rb.type='button';
+    var cb = document.getElementById('cancelRegister');
+    if(cb) cb.type='button';
+    var sr = document.getElementById('showRegister');
+    if(sr) sr.type='button';
+  }catch(e){}
+})();
+</script>
+
+</body>
+</html>
