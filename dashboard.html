@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bot Dashboard · Polymarket Hunter</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #020408;
+    color: #e0e8f0;
+    font-family: 'Courier New', monospace;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 24px;
+    border-bottom: 1px solid #0ff2;
+    background: #020408cc;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topbar .brand { font-size: 1.1rem; color: #0ff; letter-spacing: 2px; font-weight: bold; }
+  .topbar .tagline { font-size: 0.7rem; color: #0f8; }
+  .live-dot {
+    display: inline-block; width: 8px; height: 8px;
+    background: #0f0; border-radius: 50%;
+    box-shadow: 0 0 8px #0f0;
+    animation: pulse 1.2s infinite;
+    margin-right: 6px;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ── STATS ROW ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    border-bottom: 1px solid #0ff1;
+    background: #0ff1;
+  }
+  .stat-card {
+    background: #020c14;
+    padding: 14px 20px;
+  }
+  .stat-card .label { font-size: 0.6rem; color: #6af; text-transform: uppercase; letter-spacing: 1px; }
+  .stat-card .value { font-size: 1.6rem; font-weight: bold; margin-top: 2px; }
+  .stat-card .sub { font-size: 0.65rem; color: #567; margin-top: 2px; }
+  .green { color: #0f8; }
+  .red   { color: #f44; }
+  .cyan  { color: #0ff; }
+  .yellow{ color: #ff0; }
+
+  /* ── MAIN GRID ── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 260px 1fr 260px;
+    grid-template-rows: auto;
+    gap: 1px;
+    background: #0ff1;
+    min-height: calc(100vh - 200px);
+  }
+
+  /* ── SIDE PANELS ── */
+  .panel {
+    background: #020c14;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .panel-title {
+    font-size: 0.65rem;
+    color: #0ff;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    border-bottom: 1px solid #0ff3;
+    padding-bottom: 6px;
+    margin-bottom: 4px;
+  }
+
+  /* log lines */
+  .log-line {
+    font-size: 0.65rem;
+    color: #6af;
+    padding: 2px 0;
+    border-left: 2px solid #0ff4;
+    padding-left: 6px;
+    line-height: 1.4;
+  }
+  .log-line.green { color: #0f8; border-left-color: #0f84; }
+  .log-line.red   { color: #f44; border-left-color: #f444; }
+  .log-line.yellow{ color: #ff0; border-left-color: #ff04; }
+
+  /* market rows */
+  .market-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.68rem;
+    padding: 4px 0;
+    border-bottom: 1px solid #0ff1;
+  }
+  .market-row .mname { color: #8af; }
+  .market-row .mprice { font-weight: bold; }
+  .market-row .mchange { font-size: 0.6rem; }
+
+  /* confidence bar */
+  .conf-bar-wrap { margin: 4px 0; }
+  .conf-label { font-size: 0.6rem; color: #6af; margin-bottom: 2px; display: flex; justify-content: space-between; }
+  .conf-bar { height: 4px; background: #0ff1; border-radius: 2px; overflow: hidden; }
+  .conf-fill { height: 100%; border-radius: 2px; transition: width 1s; }
+
+  /* ── CENTER (CANVAS) ── */
+  .center-panel {
+    background: #010810;
+    position: relative;
+    overflow: hidden;
+  }
+  canvas#battleCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .canvas-overlay {
+    position: absolute;
+    top: 10px; left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    pointer-events: none;
+  }
+  .canvas-overlay .title {
+    font-size: 0.6rem;
+    color: #0ff8;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  .canvas-overlay .sub-title {
+    font-size: 0.55rem;
+    color: #6af6;
+  }
+  .bottom-hud {
+    position: absolute;
+    bottom: 10px;
+    left: 0; right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 16px;
+    font-size: 0.6rem;
+    color: #0ff6;
+    pointer-events: none;
+  }
+
+  /* ── BOTTOM ROW ── */
+  .bottom-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: #0ff1;
+    border-top: 1px solid #0ff1;
+  }
+  .bottom-panel {
+    background: #020c14;
+    padding: 12px 16px;
+  }
+  .bottom-panel .panel-title { margin-bottom: 8px; }
+  .tiny { font-size: 0.62rem; color: #567; }
+  .ticker {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    padding: 3px 0;
+    border-bottom: 1px solid #0ff1;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div>
+    <div class="brand">POLYMARKET HUNTER</div>
+    <div class="tagline"><span class="live-dot"></span>LIVE · Binance → Polymarket Arbitrage Bot</div>
+  </div>
+  <div style="text-align:right">
+    <div style="font-size:0.65rem;color:#6af" id="clock"></div>
+    <div style="font-size:0.6rem;color:#567">Session: 14h 22m</div>
+  </div>
+</div>
+
+<!-- STATS ROW -->
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="label">Total P&L</div>
+    <div class="value green" id="pnl">+$0</div>
+    <div class="sub">since session start</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Active Bets</div>
+    <div class="value cyan" id="bets">0</div>
+    <div class="sub">on Polymarket now</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Win Rate</div>
+    <div class="value yellow" id="winrate">--%</div>
+    <div class="sub">last 100 resolved</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Binance Signal</div>
+    <div class="value green" id="signal">SCANNING</div>
+    <div class="sub">BTC · ETH · BNB</div>
+  </div>
+</div>
+
+<!-- MAIN GRID -->
+<div class="main-grid">
+
+  <!-- LEFT PANEL -->
+  <div class="panel">
+    <div class="panel-title">Bot Activity Log</div>
+    <div id="logContainer" style="overflow:hidden;flex:1"></div>
+  </div>
+
+  <!-- CENTER CANVAS -->
+  <div class="center-panel">
+    <canvas id="battleCanvas"></canvas>
+    <div class="canvas-overlay">
+      <div class="title">Agent Swarm vs Polymarket</div>
+      <div class="sub-title" id="agentCount">0 agents converging</div>
+    </div>
+    <div class="bottom-hud">
+      <span id="hudLeft">Epoch 0 · Loss 0.000</span>
+      <span id="hudRight">Accuracy 0%</span>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel">
+    <div class="panel-title">Live Markets</div>
+    <div id="marketsContainer"></div>
+    <div class="panel-title" style="margin-top:8px">Model Confidence</div>
+    <div id="confContainer"></div>
+  </div>
+
+</div>
+
+<!-- BOTTOM ROW -->
+<div class="bottom-row">
+  <div class="bottom-panel">
+    <div class="panel-title">Binance Feed</div>
+    <div id="binanceFeed"></div>
+  </div>
+  <div class="bottom-panel">
+    <div class="panel-title">Recent Resolved</div>
+    <div id="resolvedFeed"></div>
+  </div>
+  <div class="bottom-panel">
+    <div class="panel-title">Performance</div>
+    <canvas id="miniChart" width="220" height="70" style="margin-top:4px"></canvas>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+//  CLOCK
+// ════════════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toUTCString().slice(17,25) + ' UTC';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ════════════════════════════════════════
+//  ANIMATED STATS
+// ════════════════════════════════════════
+let pnl = 0, bets = 0, wins = 0, total = 0;
+function animateStat(el, target, prefix='', suffix='', duration=800) {
+  const start = parseFloat(el.textContent.replace(/[^0-9.-]/g,'')) || 0;
+  const t0 = performance.now();
+  function step(t) {
+    const p = Math.min((t - t0) / duration, 1);
+    const v = start + (target - start) * p;
+    el.textContent = prefix + (v >= 0 ? '+' : '') + '$' + Math.abs(v).toLocaleString('en', {maximumFractionDigits:0});
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// fake growing P&L
+setInterval(() => {
+  pnl += (Math.random() * 600 - 100);
+  bets = Math.floor(Math.random() * 18) + 5;
+  const winR = 42 + Math.random() * 20;
+  document.getElementById('pnl').textContent = (pnl >= 0 ? '+' : '') + '$' + Math.abs(pnl).toFixed(0);
+  document.getElementById('pnl').className = 'value ' + (pnl >= 0 ? 'green' : 'red');
+  document.getElementById('bets').textContent = bets;
+  document.getElementById('winrate').textContent = winR.toFixed(1) + '%';
+}, 2000);
+
+// signal cycling
+const signals = ['BULLISH BTC','BEARISH ETH','NEUTRAL BNB','LONG BTC','SHORT ETH','SCANNING'];
+let sigIdx = 0;
+setInterval(() => {
+  sigIdx = (sigIdx + 1) % signals.length;
+  const el = document.getElementById('signal');
+  el.textContent = signals[sigIdx];
+  el.className = 'value ' + (signals[sigIdx].includes('BULL')||signals[sigIdx].includes('LONG') ? 'green' : signals[sigIdx].includes('BEAR')||signals[sigIdx].includes('SHORT') ? 'red' : 'yellow');
+}, 3000);
+
+// ════════════════════════════════════════
+//  LOG LINES
+// ════════════════════════════════════════
+const logMessages = [
+  ['Binance: BTC spike +2.3% detected', 'green'],
+  ['Polymarket: searching correlated markets…', ''],
+  ['Found: "BTC > 70k by Apr" @ 0.61', 'yellow'],
+  ['Signal: LONG · confidence 78%', 'green'],
+  ['Placing bet $120 on YES', 'green'],
+  ['Order confirmed · tx 0x4a2f…', 'green'],
+  ['ETH -1.8% · checking shorts', ''],
+  ['No correlated market found · skip', 'red'],
+  ['BNB +0.9% · noise · ignore', ''],
+  ['Resolving: "SOL > 200" → YES · +$44', 'green'],
+  ['Resolving: "ETH < 3k" → NO · -$30', 'red'],
+  ['Model retraining · epoch +1', 'yellow'],
+  ['Cluster convergence: 2,241 agents', 'yellow'],
+  ['Accuracy improved: 22.2% → 23.1%', 'green'],
+  ['Binance: massive BTC buy wall detected', 'green'],
+  ['Edge detected: +5.4% expected value', 'green'],
+];
+let logIdx = 0;
+function addLog() {
+  const [msg, cls] = logMessages[logIdx % logMessages.length];
+  logIdx++;
+  const div = document.createElement('div');
+  div.className = 'log-line ' + cls;
+  const ts = new Date().toISOString().slice(11,19);
+  div.textContent = '[' + ts + '] ' + msg;
+  const container = document.getElementById('logContainer');
+  container.insertBefore(div, container.firstChild);
+  if (container.children.length > 20) container.removeChild(container.lastChild);
+}
+addLog();
+setInterval(addLog, 1800);
+
+// ════════════════════════════════════════
+//  MARKETS PANEL
+// ════════════════════════════════════════
+const markets = [
+  { name: 'BTC > 70k Apr', price: 0.61, change: +2.3 },
+  { name: 'ETH < 3k Mar', price: 0.38, change: -1.1 },
+  { name: 'BNB > 500 Apr', price: 0.44, change: +0.5 },
+  { name: 'SOL > 200 Mar', price: 0.71, change: +3.8 },
+  { name: 'XRP SEC win', price: 0.29, change: -2.0 },
+  { name: 'FED rate cut', price: 0.53, change: +0.8 },
+];
+function renderMarkets() {
+  markets.forEach(m => {
+    m.price = Math.max(0.05, Math.min(0.95, m.price + (Math.random()-0.5)*0.01));
+    m.change += (Math.random()-0.5)*0.5;
+  });
+  const c = document.getElementById('marketsContainer');
+  c.innerHTML = markets.map(m => `
+    <div class="market-row">
+      <span class="mname">${m.name}</span>
+      <span class="mprice ${m.price > 0.5 ? 'green':'red'}">${(m.price*100).toFixed(1)}¢</span>
+      <span class="mchange ${m.change>=0?'green':'red'}">${m.change>=0?'+':''}${m.change.toFixed(1)}%</span>
+    </div>`).join('');
+}
+renderMarkets();
+setInterval(renderMarkets, 2500);
+
+// confidence bars
+const confs = [
+  { label: 'BTC model', pct: 78, color: '#0f8' },
+  { label: 'ETH model', pct: 62, color: '#0af' },
+  { label: 'Market timing', pct: 55, color: '#ff0' },
+  { label: 'Edge score', pct: 83, color: '#f80' },
+];
+const confEl = document.getElementById('confContainer');
+confEl.innerHTML = confs.map(c => `
+  <div class="conf-bar-wrap">
+    <div class="conf-label"><span>${c.label}</span><span style="color:${c.color}">${c.pct}%</span></div>
+    <div class="conf-bar"><div class="conf-fill" style="width:${c.pct}%;background:${c.color}"></div></div>
+  </div>`).join('');
+
+// ════════════════════════════════════════
+//  BINANCE FEED
+// ════════════════════════════════════════
+const pairs = ['BTC/USDT','ETH/USDT','BNB/USDT','SOL/USDT','XRP/USDT'];
+const prices = [68420, 3215, 432, 187, 0.61];
+function renderBinance() {
+  prices.forEach((p,i) => prices[i] = p * (1 + (Math.random()-0.5)*0.002));
+  document.getElementById('binanceFeed').innerHTML = pairs.map((p,i) => {
+    const chg = (Math.random()-0.48)*2;
+    return `<div class="ticker">
+      <span style="color:#8af">${p}</span>
+      <span>${prices[i] < 1 ? prices[i].toFixed(4) : prices[i].toLocaleString('en',{maximumFractionDigits:0})}</span>
+      <span class="${chg>=0?'green':'red'}">${chg>=0?'+':''}${chg.toFixed(2)}%</span>
+    </div>`;
+  }).join('');
+}
+renderBinance();
+setInterval(renderBinance, 1500);
+
+// ════════════════════════════════════════
+//  RESOLVED FEED
+// ════════════════════════════════════════
+const resolved = [
+  ['+$44', 'SOL > 200', 'YES'],
+  ['-$30', 'ETH < 3k', 'NO'],
+  ['+$87', 'BTC > 65k', 'YES'],
+  ['+$12', 'FED pause', 'YES'],
+  ['-$55', 'XRP win', 'NO'],
+  ['+$210', 'BTC > 68k', 'YES'],
+];
+document.getElementById('resolvedFeed').innerHTML = resolved.map(([amt,mkt,out]) => `
+  <div class="ticker">
+    <span class="${amt[0]==='+' ? 'green':'red'}" style="font-weight:bold">${amt}</span>
+    <span style="color:#8af;font-size:0.6rem">${mkt}</span>
+    <span class="${out==='YES'?'green':'red'}">${out}</span>
+  </div>`).join('');
+
+// ════════════════════════════════════════
+//  MINI CHART
+// ════════════════════════════════════════
+const mc = document.getElementById('miniChart');
+const mctx = mc.getContext('2d');
+const chartData = Array.from({length:60}, (_,i) => 5000 + Math.random()*3000 + i*80);
+function drawMiniChart() {
+  chartData.push(chartData[chartData.length-1] + (Math.random()-0.4)*400);
+  chartData.shift();
+  const W = mc.width, H = mc.height;
+  mctx.clearRect(0,0,W,H);
+  const min = Math.min(...chartData), max = Math.max(...chartData);
+  const grad = mctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,'rgba(0,255,128,0.4)');
+  grad.addColorStop(1,'rgba(0,255,128,0)');
+  mctx.beginPath();
+  chartData.forEach((v,i) => {
+    const x = i/(chartData.length-1)*W;
+    const y = H - (v-min)/(max-min)*H*0.9 - 4;
+    i===0 ? mctx.moveTo(x,y) : mctx.lineTo(x,y);
+  });
+  mctx.strokeStyle = '#0f8';
+  mctx.lineWidth = 1.5;
+  mctx.stroke();
+  mctx.lineTo(W,H); mctx.lineTo(0,H); mctx.closePath();
+  mctx.fillStyle = grad;
+  mctx.fill();
+}
+drawMiniChart();
+setInterval(drawMiniChart, 500);
+
+// ════════════════════════════════════════
+//  BATTLE CANVAS — 100 AGENTS vs POLYMARKET
+// ════════════════════════════════════════
+const canvas = document.getElementById('battleCanvas');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// Target = Polymarket "eye"
+const TARGET = { x: 0.72, y: 0.5, r: 22 };
+
+class Agent {
+  constructor(id) {
+    this.id = id;
+    this.reset();
+  }
+  reset() {
+    // spawn on the left cluster area
+    const side = Math.random();
+    if (side < 0.5) {
+      // left side swarm
+      this.x = canvas.width * (0.05 + Math.random() * 0.25);
+      this.y = canvas.height * (0.1 + Math.random() * 0.8);
+    } else {
+      // scattered
+      this.x = canvas.width * (Math.random() * 0.5);
+      this.y = canvas.height * (Math.random());
+    }
+    this.win = Math.random() > 0.38;
+    this.color = this.win ? '#00ff88' : '#ff3344';
+    this.glowColor = this.win ? 'rgba(0,255,136,' : 'rgba(255,51,68,';
+    this.speed = 1.2 + Math.random() * 2.5;
+    this.size = 1 + Math.random() * 2.5;
+    this.trail = [];
+    this.trailLen = Math.floor(8 + Math.random() * 20);
+    this.arrived = false;
+    this.alpha = 0.4 + Math.random() * 0.6;
+    // Some agents are "streaks" (horizontal bar style like img2)
+    this.isStreak = Math.random() > 0.55;
+    this.streakW = this.isStreak ? (20 + Math.random() * 80) : 0;
+  }
+
+  update(tx, ty) {
+    if (this.arrived) return;
+    const dx = tx - this.x;
+    const dy = ty - this.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < 18) {
+      this.arrived = true;
+      // explode effect handled in draw
+      return;
+    }
+    const nx = dx/dist, ny = dy/dist;
+    // Add slight wobble
+    const wx = (Math.random()-0.5)*0.4;
+    const wy = (Math.random()-0.5)*0.4;
+    this.trail.push({x: this.x, y: this.y});
+    if (this.trail.length > this.trailLen) this.trail.shift();
+    this.x += (nx + wx) * this.speed;
+    this.y += (ny + wy) * this.speed;
+  }
+
+  draw(ctx) {
+    if (this.arrived) return;
+    // Draw trail
+    for (let i = 0; i < this.trail.length; i++) {
+      const t = i / this.trail.length;
+      const alpha = t * this.alpha * 0.6;
+      if (this.isStreak) {
+        // horizontal bar trail
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = this.color;
+        const bw = this.streakW * t;
+        const bh = this.size * 0.8;
+        ctx.fillRect(this.trail[i].x - bw, this.trail[i].y - bh/2, bw, bh);
+        ctx.restore();
+      } else {
+        ctx.beginPath();
+        ctx.arc(this.trail[i].x, this.trail[i].y, this.size * t, 0, Math.PI*2);
+        ctx.fillStyle = this.glowColor + alpha + ')';
+        ctx.fill();
+      }
+    }
+    // Draw head
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    if (this.isStreak) {
+      // bar head
+      ctx.shadowColor = this.color;
+      ctx.shadowBlur = 6;
+      ctx.fillStyle = this.color;
+      ctx.fillRect(this.x - this.streakW*0.3, this.y - this.size/2, this.streakW*0.3, this.size);
+    } else {
+      ctx.shadowColor = this.color;
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+      ctx.fillStyle = this.color;
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+// Create 100 agents
+const agents = Array.from({length: 100}, (_,i) => new Agent(i));
+
+// Explosion particles
+const explosions = [];
+class Explosion {
+  constructor(x, y, color) {
+    this.x = x; this.y = y; this.color = color;
+    this.particles = Array.from({length: 8}, () => ({
+      vx: (Math.random()-0.5)*4,
+      vy: (Math.random()-0.5)*4,
+      life: 1,
+      r: 1 + Math.random()*2
+    }));
+    this.life = 1;
+  }
+  update() {
+    this.life -= 0.04;
+    this.particles.forEach(p => {
+      p.x = (p.x||this.x) + p.vx;
+      p.y = (p.y||this.y) + p.vy;
+      p.vx *= 0.9; p.vy *= 0.9;
+      p.life -= 0.05;
+    });
+  }
+  draw(ctx) {
+    this.particles.forEach(p => {
+      if (p.life <= 0) return;
+      ctx.save();
+      ctx.globalAlpha = p.life * this.life;
+      ctx.beginPath();
+      ctx.arc(p.x||this.x, p.y||this.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = this.color;
+      ctx.shadowColor = this.color;
+      ctx.shadowBlur = 4;
+      ctx.fill();
+      ctx.restore();
+    });
+  }
+}
+
+let epoch = 779, loss = 0.00765, accuracy = 22.2;
+let frameCount = 0;
+
+function drawBattle() {
+  const W = canvas.width, H = canvas.height;
+  // Fade background
+  ctx.fillStyle = 'rgba(1,8,16,0.18)';
+  ctx.fillRect(0,0,W,H);
+
+  const tx = W * TARGET.x;
+  const ty = H * TARGET.y;
+
+  // ── Draw background nebula clouds ──
+  if (frameCount % 90 === 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.015;
+    const ng = ctx.createRadialGradient(W*0.72,H*0.5,10,W*0.72,H*0.5,W*0.3);
+    ng.addColorStop(0,'#f84');
+    ng.addColorStop(0.4,'#f0a');
+    ng.addColorStop(1,'transparent');
+    ctx.fillStyle = ng;
+    ctx.fillRect(0,0,W,H);
+    ctx.restore();
+  }
+
+  // ── Target: Polymarket ──
+  // Outer glow rings
+  for (let r = 60; r >= 20; r -= 10) {
+    const alpha = (60 - r) / 60 * 0.15 + 0.03;
+    ctx.beginPath();
+    ctx.arc(tx, ty, r + Math.sin(frameCount*0.05)*3, 0, Math.PI*2);
+    ctx.strokeStyle = `rgba(255,140,0,${alpha})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  // Core
+  const tGrad = ctx.createRadialGradient(tx,ty,2,tx,ty,TARGET.r);
+  tGrad.addColorStop(0,'#fff8d0');
+  tGrad.addColorStop(0.4,'#ffaa00');
+  tGrad.addColorStop(1,'rgba(255,80,0,0)');
+  ctx.beginPath();
+  ctx.arc(tx,ty,TARGET.r,0,Math.PI*2);
+  ctx.fillStyle = tGrad;
+  ctx.fill();
+  // Label
+  ctx.save();
+  ctx.globalAlpha = 0.9;
+  ctx.fillStyle = '#ffaa00';
+  ctx.font = 'bold 11px Courier New';
+  ctx.textAlign = 'center';
+  ctx.shadowColor = '#ff8800';
+  ctx.shadowBlur = 10;
+  ctx.fillText('POLYMARKET', tx, ty + TARGET.r + 16);
+  ctx.fillText('⬤', tx, ty + TARGET.r + 28);
+  ctx.restore();
+
+  // ── Update & draw agents ──
+  let active = 0;
+  agents.forEach(a => {
+    if (!a.arrived) {
+      a.update(tx, ty);
+      a.draw(ctx);
+      active++;
+    } else {
+      // respawn after short delay
+      if (Math.random() < 0.008) {
+        explosions.push(new Explosion(tx, ty, a.color));
+        a.reset();
+      }
+    }
+  });
+
+  // ── Explosions ──
+  for (let i = explosions.length - 1; i >= 0; i--) {
+    explosions[i].update();
+    explosions[i].draw(ctx);
+    if (explosions[i].life <= 0) explosions.splice(i,1);
+  }
+
+  // ── Cluster labels ──
+  const clusters = [
+    {x:0.15,y:0.3,label:'BINANCE',sub:'42 agents',color:'#0f8'},
+    {x:0.08,y:0.65,label:'SENTIMENT',sub:'28 agents',color:'#0af'},
+    {x:0.35,y:0.15,label:'MOMENTUM',sub:'15 agents',color:'#f80'},
+    {x:0.3,y:0.75,label:'VOLUME',sub:'15 agents',color:'#f0a'},
+  ];
+  clusters.forEach(cl => {
+    const cx = W*cl.x, cy = H*cl.y;
+    // Cluster glow
+    const cg = ctx.createRadialGradient(cx,cy,2,cx,cy,35);
+    cg.addColorStop(0, cl.color + '33');
+    cg.addColorStop(1,'transparent');
+    ctx.beginPath();
+    ctx.arc(cx,cy,35,0,Math.PI*2);
+    ctx.fillStyle = cg;
+    ctx.fill();
+    // Label
+    ctx.save();
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = cl.color;
+    ctx.font = 'bold 10px Courier New';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = cl.color;
+    ctx.shadowBlur = 8;
+    ctx.fillText(cl.label, cx, cy - 20);
+    ctx.font = '9px Courier New';
+    ctx.globalAlpha = 0.5;
+    ctx.fillText(cl.sub, cx, cy - 8);
+    ctx.restore();
+  });
+
+  // ── HUD update ──
+  frameCount++;
+  if (frameCount % 180 === 0) {
+    epoch++;
+    loss = Math.max(0.001, loss * (0.98 + Math.random()*0.04));
+    accuracy = Math.min(99, accuracy + (Math.random()-0.3)*0.5);
+    document.getElementById('hudLeft').textContent =
+      `Epoch ${epoch} · Loss ${loss.toFixed(5)}`;
+    document.getElementById('hudRight').textContent =
+      `Accuracy ${accuracy.toFixed(1)}%`;
+    document.getElementById('agentCount').textContent =
+      `${active} agents converging on target`;
+  }
+
+  requestAnimationFrame(drawBattle);
+}
+
+// Wait for layout
+setTimeout(() => {
+  resize();
+  drawBattle();
+}, 100);
+</script>
+</body>
+</html>
