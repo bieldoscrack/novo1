@@ -638,9 +638,17 @@ class Laser {
 // Build agents once canvas is sized
 for (let i = 0; i < NUM_AGENTS; i++) agents.push(new Agent(i));
 
-// ── Render loop ──
+// ── Render loop — 140 Hz target ──
+const TARGET_FPS = 140;
+const FRAME_MS   = 1000 / TARGET_FPS;
 let frame = 0;
-function render() {
+let lastTime = 0;
+
+function render(now = 0) {
+  requestAnimationFrame(render);
+  const delta = now - lastTime;
+  if (delta < FRAME_MS - 0.5) return; // skip frame if too early
+  lastTime = now - (delta % FRAME_MS); // carry over remainder for smoothness
   const W = cv.width, H = cv.height;
   const cubeX = W * .62, cubeY = H * .5;
 
@@ -685,15 +693,13 @@ function render() {
   }
 
   frame++;
-  requestAnimationFrame(render);
 }
 
 // Wait for layout then start
 requestAnimationFrame(() => {
   resizeCanvas();
-  // Reset agent bases after resize
   agents.forEach(a => a.reset());
-  render();
+  requestAnimationFrame(render);
 });
 </script>
 </body>
