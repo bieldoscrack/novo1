@@ -219,7 +219,6 @@ body {
       <div class="t1">dont cry</div>
       <div class="t2" id="cvSub">aguardando…</div>
     </div>
-    <div class="demo-badge" id="demoBadge">DEMO</div>
     <div class="cv-bot">
       <span id="hudL">Hits: 0</span>
       <span id="hudR">Agentes: 0 ativos</span>
@@ -230,8 +229,8 @@ body {
   <div class="side">
     <div class="ptitle">Mercados Ativos</div>
     <div id="marketsEl"></div>
-    <div class="ptitle" style="margin-top:8px">Confiança do Modelo</div>
-    <div id="confEl"></div>
+    <div class="ptitle" style="margin-top:8px">Módulos do Bot</div>
+    <div id="modulesEl"></div>
   </div>
 
 </div>
@@ -240,18 +239,14 @@ body {
 <div class="bottom">
   <div class="bpanel">
     <div class="ptitle" style="margin-bottom:6px">Win / Loss</div>
-    <div id="winlossEl" style="display:flex;gap:18px;align-items:center">
+    <div id="winlossEl" style="display:flex;gap:24px;align-items:center">
       <div style="text-align:center">
         <div style="font-size:0.5rem;color:#007718;letter-spacing:1px">WIN</div>
-        <div id="wlWins" style="font-size:1.3rem;font-weight:bold;color:#00ff41;text-shadow:0 0 8px #00ff41;line-height:1.1">0</div>
+        <div id="wlWins" style="font-size:1.6rem;font-weight:bold;color:#00ff41;text-shadow:0 0 10px #00ff41;line-height:1.1">0</div>
       </div>
       <div style="text-align:center">
         <div style="font-size:0.5rem;color:#007718;letter-spacing:1px">LOSS</div>
-        <div id="wlLoss" style="font-size:1.3rem;font-weight:bold;color:#ff3344;line-height:1.1">0</div>
-      </div>
-      <div style="text-align:center;margin-left:4px">
-        <div style="font-size:0.5rem;color:#007718;letter-spacing:1px">WIN RATE</div>
-        <div id="wlRate" style="font-size:1rem;font-weight:bold;color:#00ff41;line-height:1.1">--%</div>
+        <div id="wlLoss" style="font-size:1.6rem;font-weight:bold;color:#ff3344;line-height:1.1">0</div>
       </div>
     </div>
   </div>
@@ -303,17 +298,14 @@ function updateConnUI() {
   const dot   = document.getElementById('liveDot');
   const lbl   = document.getElementById('liveLabel');
   const st    = document.getElementById('connStatus');
-  const badge = document.getElementById('demoBadge');
   if (connected) {
     dot.className = 'dot';
     lbl.textContent = 'BOT CONECTADO · LIVE';
     st.textContent = 'online'; st.className = 'conn-status ok';
-    badge.style.display = 'none';
   } else {
     dot.className = 'dot offline';
     lbl.textContent = 'AGUARDANDO BOT…';
     st.textContent = 'offline'; st.className = 'conn-status err';
-    badge.style.display = 'block';
   }
 }
 
@@ -364,14 +356,8 @@ function applyState(d) {
       </div>`).join('');
   }
 
-  // Confidence bars
-  if (Array.isArray(d.confidence)) {
-    document.getElementById('confEl').innerHTML = d.confidence.map(c => `
-      <div class="cbar-wrap">
-        <div class="cbar-lbl"><span>${c.label}</span><span style="color:${c.color}">${c.pct}%</span></div>
-        <div class="cbar"><div class="cbar-fill" style="width:${c.pct}%;background:${c.color}"></div></div>
-      </div>`).join('');
-  }
+  // Módulos do bot (via API quando disponível)
+  if (Array.isArray(d.modules)) renderModules(d.modules);
 
   // (Binance feed removido — painel substituído por Win/Loss)
 
@@ -392,7 +378,6 @@ function applyState(d) {
   const wRate = wTotal > 0 ? (wWins / wTotal * 100).toFixed(1) + '%' : '--%';
   document.getElementById('wlWins').textContent = wWins;
   document.getElementById('wlLoss').textContent = Math.max(0, wLoss);
-  document.getElementById('wlRate').textContent = wRate;
 
   // PnL chart
   if (typeof d.pnl === 'number') pushChart(d.pnl);
@@ -440,10 +425,65 @@ document.getElementById('marketsEl').innerHTML = `
   <div style="font-size:.6rem;color:#007718;padding:6px 0">
     Conecte seu bot para ver mercados ao vivo
   </div>`;
-document.getElementById('confEl').innerHTML = `
-  <div style="font-size:.6rem;color:#007718">
-    Aguardando dados do modelo…
-  </div>`;
+// ── Módulos do Bot (estático até integração) ──
+const MODULES_DEFAULT = [
+  {
+    name: 'Copy Trade',
+    status: 'Ativo',
+    rows: [
+      ['Wallets', '2'],
+      ['Posições abertas', '0'],
+      ['Investido (aberto)', '$0.00'],
+      ['PnL realizado', '$0.00'],
+    ]
+  },
+  {
+    name: 'Bond Feed',
+    status: 'Ativo',
+    rows: [
+      ['Compras', '3/3'],
+      ['Lucro potenc.', '$0.17'],
+    ]
+  },
+  {
+    name: 'Weather Feed',
+    status: 'Ativo',
+    rows: [
+      ['Compras', '2/2'],
+      ['Lucro potenc.', '$76.08'],
+    ]
+  },
+  {
+    name: 'Crypto Up/Down 5 Min',
+    status: 'Ativo',
+    rows: [
+      ['Moedas', 'BTC ETH SOL XRP DOGE BNB'],
+      ['Trades', '0/0'],
+      ['BTC', '$70211  -0.231%'],
+      ['ETH', '$2143  -0.324%'],
+      ['SOL', '$89  -0.449%'],
+      ['XRP', '$1.4475  -0.454%'],
+      ['DOGE', '$0.0932  -0.331%'],
+      ['BNB', '$640  -0.256%'],
+    ]
+  },
+];
+
+function renderModules(mods) {
+  document.getElementById('modulesEl').innerHTML = mods.map(m => `
+    <div style="margin-bottom:7px;border-left:2px solid #00aa33;padding-left:6px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+        <span style="font-size:.58rem;color:#00ff88;letter-spacing:.5px;font-weight:bold">${m.name}</span>
+        <span style="font-size:.5rem;color:#00cc44;border:1px solid #004400;padding:1px 4px">${m.status}</span>
+      </div>
+      ${m.rows.map(([k,v]) => `
+        <div style="display:flex;justify-content:space-between;font-size:.52rem;color:#007718;line-height:1.5">
+          <span>${k}</span><span style="color:#00cc44">${v}</span>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+renderModules(MODULES_DEFAULT);
 // (binanceEl removido)
 
 // ═══════════════════════════════════════════════
