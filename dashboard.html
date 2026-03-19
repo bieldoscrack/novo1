@@ -229,7 +229,7 @@ body {
   <div class="side">
     <div class="ptitle">Mercados Ativos</div>
     <div id="marketsEl"></div>
-    <div class="ptitle" style="margin-top:8px">Módulos do Bot</div>
+    <div class="ptitle" style="margin-top:8px">Dashboard</div>
     <div id="modulesEl"></div>
   </div>
 
@@ -429,9 +429,9 @@ document.getElementById('marketsEl').innerHTML = `
 const MODULES_DEFAULT = [
   {
     name: 'Copy Trade',
-    status: 'Ativo',
+    status: 'Aguardando',
     rows: [
-      ['Wallets', '2'],
+      ['Wallets', '0'],
       ['Posições abertas', '0'],
       ['Investido (aberto)', '$0.00'],
       ['PnL realizado', '$0.00'],
@@ -439,32 +439,32 @@ const MODULES_DEFAULT = [
   },
   {
     name: 'Bond Feed',
-    status: 'Ativo',
+    status: 'Aguardando',
     rows: [
-      ['Compras', '3/3'],
-      ['Lucro potenc.', '$0.17'],
+      ['Compras', '0/0'],
+      ['Lucro potenc.', '$0.00'],
     ]
   },
   {
     name: 'Weather Feed',
-    status: 'Ativo',
+    status: 'Aguardando',
     rows: [
-      ['Compras', '2/2'],
-      ['Lucro potenc.', '$76.08'],
+      ['Compras', '0/0'],
+      ['Lucro potenc.', '$0.00'],
     ]
   },
   {
     name: 'Crypto Up/Down 5 Min',
-    status: 'Ativo',
+    status: 'Aguardando',
     rows: [
-      ['Moedas', 'BTC ETH SOL XRP DOGE BNB'],
+      ['Moedas (Binance)', 'BTC ETH SOL XRP DOGE BNB'],
       ['Trades', '0/0'],
-      ['BTC', '$70211  -0.231%'],
-      ['ETH', '$2143  -0.324%'],
-      ['SOL', '$89  -0.449%'],
-      ['XRP', '$1.4475  -0.454%'],
-      ['DOGE', '$0.0932  -0.331%'],
-      ['BNB', '$640  -0.256%'],
+      ['BTC', '$0.00  0.000%'],
+      ['ETH', '$0.00  0.000%'],
+      ['SOL', '$0.00  0.000%'],
+      ['XRP', '$0.00  0.000%'],
+      ['DOGE', '$0.00  0.000%'],
+      ['BNB', '$0.00  0.000%'],
     ]
   },
 ];
@@ -614,7 +614,7 @@ class Agent {
     this.driftA  = Math.random() * Math.PI * 2;
     this.driftR  = 4 + Math.random() * 12;
     this.driftSpd= .008 + Math.random() * .012;
-    this.shootInt= 250 + Math.random() * 350; // frames between shots — menos lasers
+    this.shootInt= 600 + Math.random() * 800; // frames between shots — muito menos lasers
     this.size    = 1.5 + Math.random() * 2.5;
     this.alpha   = .5 + Math.random() * .5;
   }
@@ -653,7 +653,7 @@ class Laser {
     this.sx = sx; this.sy = sy;
     this.tx = tx; this.ty = ty;
     this.t  = 0;
-    this.spd = .004 + Math.random() * .003; // muito mais lento
+    this.spd = .0018 + Math.random() * .0012; // lentíssimo
     this.w   = .8 + Math.random() * 1.5;
     this.hit = false;
     // Bezier curve control point — perpendicular offset for curved path
