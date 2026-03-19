@@ -239,8 +239,21 @@ body {
 <!-- BOTTOM -->
 <div class="bottom">
   <div class="bpanel">
-    <div class="ptitle" style="margin-bottom:4px">Binance Feed</div>
-    <div id="binanceEl"></div>
+    <div class="ptitle" style="margin-bottom:6px">Win / Loss</div>
+    <div id="winlossEl" style="display:flex;gap:18px;align-items:center">
+      <div style="text-align:center">
+        <div style="font-size:0.5rem;color:#007718;letter-spacing:1px">WIN</div>
+        <div id="wlWins" style="font-size:1.3rem;font-weight:bold;color:#00ff41;text-shadow:0 0 8px #00ff41;line-height:1.1">0</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:0.5rem;color:#007718;letter-spacing:1px">LOSS</div>
+        <div id="wlLoss" style="font-size:1.3rem;font-weight:bold;color:#ff3344;line-height:1.1">0</div>
+      </div>
+      <div style="text-align:center;margin-left:4px">
+        <div style="font-size:0.5rem;color:#007718;letter-spacing:1px">WIN RATE</div>
+        <div id="wlRate" style="font-size:1rem;font-weight:bold;color:#00ff41;line-height:1.1">--%</div>
+      </div>
+    </div>
   </div>
   <div class="bpanel">
     <div class="ptitle" style="margin-bottom:4px">Resolvidos Recentes</div>
@@ -360,15 +373,7 @@ function applyState(d) {
       </div>`).join('');
   }
 
-  // Binance
-  if (d.binance && typeof d.binance === 'object') {
-    document.getElementById('binanceEl').innerHTML = Object.entries(d.binance).map(([sym,v]) => `
-      <div class="ticker">
-        <span class="sym">${sym}</span>
-        <span>${typeof v.price === 'number' ? v.price.toLocaleString('en',{maximumFractionDigits:4}) : v.price}</span>
-        <span class="${(v.change??0)>=0?'g':'r'}">${(v.change??0)>=0?'+':''}${(v.change??0).toFixed(2)}%</span>
-      </div>`).join('');
-  }
+  // (Binance feed removido — painel substituído por Win/Loss)
 
   // Resolved
   if (Array.isArray(d.resolved)) {
@@ -379,6 +384,15 @@ function applyState(d) {
         <span class="${r.outcome==='YES'?'g':'r'}">${r.outcome}</span>
       </div>`).join('');
   }
+
+  // Win / Loss panel
+  const wWins = d.wins ?? 0;
+  const wTotal = d.total_bets ?? 0;
+  const wLoss = wTotal - wWins;
+  const wRate = wTotal > 0 ? (wWins / wTotal * 100).toFixed(1) + '%' : '--%';
+  document.getElementById('wlWins').textContent = wWins;
+  document.getElementById('wlLoss').textContent = Math.max(0, wLoss);
+  document.getElementById('wlRate').textContent = wRate;
 
   // PnL chart
   if (typeof d.pnl === 'number') pushChart(d.pnl);
@@ -430,9 +444,7 @@ document.getElementById('confEl').innerHTML = `
   <div style="font-size:.6rem;color:#007718">
     Aguardando dados do modelo…
   </div>`;
-document.getElementById('binanceEl').innerHTML = `
-  <div class="ticker"><span class="sym">BTC/USDT</span><span style="color:var(--dim)">--</span><span>--%</span></div>
-  <div class="ticker"><span class="sym">ETH/USDT</span><span style="color:var(--dim)">--</span><span>--%</span></div>`;
+// (binanceEl removido)
 
 // ═══════════════════════════════════════════════
 //  CANVAS BATTLE ANIMATION
@@ -562,7 +574,7 @@ class Agent {
     this.driftA  = Math.random() * Math.PI * 2;
     this.driftR  = 4 + Math.random() * 12;
     this.driftSpd= .008 + Math.random() * .012;
-    this.shootInt= 50 + Math.random() * 100; // frames between shots
+    this.shootInt= 250 + Math.random() * 350; // frames between shots — menos lasers
     this.size    = 1.5 + Math.random() * 2.5;
     this.alpha   = .5 + Math.random() * .5;
   }
@@ -601,7 +613,7 @@ class Laser {
     this.sx = sx; this.sy = sy;
     this.tx = tx; this.ty = ty;
     this.t  = 0;
-    this.spd = .010 + Math.random() * .008; // slower
+    this.spd = .004 + Math.random() * .003; // muito mais lento
     this.w   = .8 + Math.random() * 1.5;
     this.hit = false;
     // Bezier curve control point — perpendicular offset for curved path
@@ -710,7 +722,7 @@ function render(now = 0) {
   if (frame % 30 === 0) {
     document.getElementById('hudR').textContent = `Agentes: ${active} · Lasers: ${lasers.length}`;
     document.getElementById('cvSub').textContent =
-      connected ? `${active} agentes atacando · ${cube.totalHits} hits` : 'animação de batalha ativa';
+      connected ? `${active} agentes atacando · ${cube.totalHits} hits` : '';
   }
 
   frame++;
