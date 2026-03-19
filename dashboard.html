@@ -2,748 +2,699 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bot Dashboard · Polymarket Hunter</title>
+<title>Polymarket Hunter · Dashboard</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: #020408;
-    color: #e0e8f0;
-    font-family: 'Courier New', monospace;
-    overflow-x: hidden;
-    min-height: 100vh;
-  }
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --bg:      #010810;
+  --panel:   #020d1a;
+  --border:  rgba(0,200,255,0.12);
+  --cyan:    #00d4ff;
+  --green:   #00ff88;
+  --red:     #ff3344;
+  --yellow:  #ffcc00;
+  --dim:     #3a5a6a;
+}
+body {
+  background: var(--bg);
+  color: #c8e0f0;
+  font-family: 'Courier New', monospace;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
 
-  /* ── TOP BAR ── */
-  .topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 24px;
-    border-bottom: 1px solid #0ff2;
-    background: #020408cc;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-  .topbar .brand { font-size: 1.1rem; color: #0ff; letter-spacing: 2px; font-weight: bold; }
-  .topbar .tagline { font-size: 0.7rem; color: #0f8; }
-  .live-dot {
-    display: inline-block; width: 8px; height: 8px;
-    background: #0f0; border-radius: 50%;
-    box-shadow: 0 0 8px #0f0;
-    animation: pulse 1.2s infinite;
-    margin-right: 6px;
-  }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+/* ── TOPBAR ── */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--border);
+  background: #010c17;
+  flex-shrink: 0;
+}
+.brand { color: var(--cyan); font-size: 1rem; font-weight: bold; letter-spacing: 3px; }
+.live-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.6rem; color: var(--dim);
+}
+.dot { width:7px; height:7px; border-radius:50%; background:var(--green);
+       box-shadow:0 0 8px var(--green); animation:blink 1.2s infinite; }
+.dot.offline { background:#555; box-shadow:none; animation:none; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+.conn-status { font-size:0.58rem; }
+.conn-status.ok  { color:var(--green); }
+.conn-status.err { color:var(--red); }
+.clock { font-size:0.65rem; color:var(--dim); text-align:right; }
 
-  /* ── STATS ROW ── */
-  .stats-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1px;
-    border-bottom: 1px solid #0ff1;
-    background: #0ff1;
-  }
-  .stat-card {
-    background: #020c14;
-    padding: 14px 20px;
-  }
-  .stat-card .label { font-size: 0.6rem; color: #6af; text-transform: uppercase; letter-spacing: 1px; }
-  .stat-card .value { font-size: 1.6rem; font-weight: bold; margin-top: 2px; }
-  .stat-card .sub { font-size: 0.65rem; color: #567; margin-top: 2px; }
-  .green { color: #0f8; }
-  .red   { color: #f44; }
-  .cyan  { color: #0ff; }
-  .yellow{ color: #ff0; }
+/* ── STATS ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.stat {
+  padding: 10px 16px;
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+}
+.stat:last-child { border-right: none; }
+.stat .lbl { font-size:0.55rem; color:var(--dim); text-transform:uppercase; letter-spacing:1px; }
+.stat .val { font-size:1.4rem; font-weight:bold; margin-top:2px; }
+.stat .sub { font-size:0.55rem; color:var(--dim); margin-top:2px; }
+.g { color:var(--green); } .r { color:var(--red); }
+.c { color:var(--cyan); }  .y { color:var(--yellow); }
 
-  /* ── MAIN GRID ── */
-  .main-grid {
-    display: grid;
-    grid-template-columns: 260px 1fr 260px;
-    grid-template-rows: auto;
-    gap: 1px;
-    background: #0ff1;
-    min-height: calc(100vh - 200px);
-  }
+/* ── MAIN ── */
+.main {
+  display: grid;
+  grid-template-columns: 220px 1fr 220px;
+  flex: 1;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+.side {
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+}
+.side:last-child { border-right:none; border-left:1px solid var(--border); }
+.ptitle {
+  font-size:0.55rem; color:var(--cyan);
+  text-transform:uppercase; letter-spacing:2px;
+  border-bottom:1px solid var(--border); padding-bottom:5px;
+}
 
-  /* ── SIDE PANELS ── */
-  .panel {
-    background: #020c14;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .panel-title {
-    font-size: 0.65rem;
-    color: #0ff;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    border-bottom: 1px solid #0ff3;
-    padding-bottom: 6px;
-    margin-bottom: 4px;
-  }
+/* log */
+.log-wrap { overflow:hidden; flex:1; display:flex; flex-direction:column-reverse; }
+.log-line { font-size:0.6rem; padding:2px 0 2px 6px; border-left:2px solid #0af3; color:#6af; line-height:1.4; }
+.log-line.g { color:var(--green); border-left-color:#0f84; }
+.log-line.r { color:var(--red);   border-left-color:#f444; }
+.log-line.y { color:var(--yellow);border-left-color:#ff04; }
 
-  /* log lines */
-  .log-line {
-    font-size: 0.65rem;
-    color: #6af;
-    padding: 2px 0;
-    border-left: 2px solid #0ff4;
-    padding-left: 6px;
-    line-height: 1.4;
-  }
-  .log-line.green { color: #0f8; border-left-color: #0f84; }
-  .log-line.red   { color: #f44; border-left-color: #f444; }
-  .log-line.yellow{ color: #ff0; border-left-color: #ff04; }
+/* market rows */
+.mrow { display:flex; justify-content:space-between; font-size:0.62rem;
+        padding:3px 0; border-bottom:1px solid var(--border); }
+.mrow .mn { color:#8af; } .mrow .mp { font-weight:bold; }
 
-  /* market rows */
-  .market-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.68rem;
-    padding: 4px 0;
-    border-bottom: 1px solid #0ff1;
-  }
-  .market-row .mname { color: #8af; }
-  .market-row .mprice { font-weight: bold; }
-  .market-row .mchange { font-size: 0.6rem; }
+/* conf bars */
+.cbar-wrap { margin:3px 0; }
+.cbar-lbl { font-size:0.58rem; color:var(--dim); display:flex; justify-content:space-between; margin-bottom:2px; }
+.cbar { height:3px; background:#0ff1; border-radius:2px; overflow:hidden; }
+.cbar-fill { height:100%; border-radius:2px; }
 
-  /* confidence bar */
-  .conf-bar-wrap { margin: 4px 0; }
-  .conf-label { font-size: 0.6rem; color: #6af; margin-bottom: 2px; display: flex; justify-content: space-between; }
-  .conf-bar { height: 4px; background: #0ff1; border-radius: 2px; overflow: hidden; }
-  .conf-fill { height: 100%; border-radius: 2px; transition: width 1s; }
+/* ── CENTER ── */
+.center { background:#010810; position:relative; overflow:hidden; }
+#cv { display:block; }
+.cv-top {
+  position:absolute; top:10px; left:0; right:0;
+  text-align:center; pointer-events:none;
+}
+.cv-top .t1 { font-size:0.58rem; color:rgba(0,212,255,.6); letter-spacing:3px; text-transform:uppercase; }
+.cv-top .t2 { font-size:0.52rem; color:rgba(100,150,180,.5); }
+.cv-bot {
+  position:absolute; bottom:6px; left:10px; right:10px;
+  display:flex; justify-content:space-between;
+  font-size:0.55rem; color:rgba(0,212,255,.4); pointer-events:none;
+}
+.demo-badge {
+  position:absolute; top:10px; right:10px;
+  font-size:0.5rem; background:#ff440022; border:1px solid #ff4444;
+  color:#ff6666; padding:2px 6px; letter-spacing:1px; display:none;
+}
 
-  /* ── CENTER (CANVAS) ── */
-  .center-panel {
-    background: #010810;
-    position: relative;
-    overflow: hidden;
-  }
-  canvas#battleCanvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-  }
-  .canvas-overlay {
-    position: absolute;
-    top: 10px; left: 50%;
-    transform: translateX(-50%);
-    text-align: center;
-    pointer-events: none;
-  }
-  .canvas-overlay .title {
-    font-size: 0.6rem;
-    color: #0ff8;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-  }
-  .canvas-overlay .sub-title {
-    font-size: 0.55rem;
-    color: #6af6;
-  }
-  .bottom-hud {
-    position: absolute;
-    bottom: 10px;
-    left: 0; right: 0;
-    display: flex;
-    justify-content: space-between;
-    padding: 0 16px;
-    font-size: 0.6rem;
-    color: #0ff6;
-    pointer-events: none;
-  }
-
-  /* ── BOTTOM ROW ── */
-  .bottom-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    background: #0ff1;
-    border-top: 1px solid #0ff1;
-  }
-  .bottom-panel {
-    background: #020c14;
-    padding: 12px 16px;
-  }
-  .bottom-panel .panel-title { margin-bottom: 8px; }
-  .tiny { font-size: 0.62rem; color: #567; }
-  .ticker {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.65rem;
-    padding: 3px 0;
-    border-bottom: 1px solid #0ff1;
-  }
+/* ── BOTTOM ── */
+.bottom {
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  flex-shrink: 0;
+  height: 90px;
+  border-top: 1px solid var(--border);
+}
+.bpanel {
+  background:var(--panel);
+  padding:8px 12px;
+  border-right:1px solid var(--border);
+  overflow:hidden;
+}
+.bpanel:last-child { border-right:none; }
+.ticker { display:flex; justify-content:space-between; font-size:0.6rem;
+          padding:2px 0; border-bottom:1px solid var(--border); }
+.ticker .sym { color:#8af; }
 </style>
 </head>
 <body>
 
-<!-- TOP BAR -->
+<!-- TOP -->
 <div class="topbar">
   <div>
     <div class="brand">POLYMARKET HUNTER</div>
-    <div class="tagline"><span class="live-dot"></span>LIVE · Binance → Polymarket Arbitrage Bot</div>
+    <div class="live-badge">
+      <span class="dot" id="liveDot"></span>
+      <span id="liveLabel">AGUARDANDO BOT…</span>
+      &nbsp;|&nbsp;
+      <span class="conn-status" id="connStatus">offline</span>
+    </div>
   </div>
-  <div style="text-align:right">
-    <div style="font-size:0.65rem;color:#6af" id="clock"></div>
-    <div style="font-size:0.6rem;color:#567">Session: 14h 22m</div>
+  <div>
+    <div class="clock" id="clock"></div>
+    <div style="font-size:.55rem;color:var(--dim);text-align:right">POST /api/update para conectar</div>
   </div>
 </div>
 
-<!-- STATS ROW -->
+<!-- STATS -->
 <div class="stats-row">
-  <div class="stat-card">
-    <div class="label">Total P&L</div>
-    <div class="value green" id="pnl">+$0</div>
-    <div class="sub">since session start</div>
+  <div class="stat">
+    <div class="lbl">Total P&L</div>
+    <div class="val g" id="sPnl">$0.00</div>
+    <div class="sub" id="sPnlSub">sem dados</div>
   </div>
-  <div class="stat-card">
-    <div class="label">Active Bets</div>
-    <div class="value cyan" id="bets">0</div>
-    <div class="sub">on Polymarket now</div>
+  <div class="stat">
+    <div class="lbl">Saldo</div>
+    <div class="val c" id="sBalance">$0.00</div>
+    <div class="sub">carteira</div>
   </div>
-  <div class="stat-card">
-    <div class="label">Win Rate</div>
-    <div class="value yellow" id="winrate">--%</div>
-    <div class="sub">last 100 resolved</div>
+  <div class="stat">
+    <div class="lbl">Apostas Ativas</div>
+    <div class="val y" id="sBets">0</div>
+    <div class="sub">no Polymarket</div>
   </div>
-  <div class="stat-card">
-    <div class="label">Binance Signal</div>
-    <div class="value green" id="signal">SCANNING</div>
+  <div class="stat">
+    <div class="lbl">Win Rate</div>
+    <div class="val c" id="sWinRate">--%</div>
+    <div class="sub" id="sWinSub">0 / 0</div>
+  </div>
+  <div class="stat">
+    <div class="lbl">Sinal Binance</div>
+    <div class="val y" id="sSignal">SCANNING</div>
     <div class="sub">BTC · ETH · BNB</div>
   </div>
 </div>
 
-<!-- MAIN GRID -->
-<div class="main-grid">
+<!-- MAIN -->
+<div class="main">
 
-  <!-- LEFT PANEL -->
-  <div class="panel">
-    <div class="panel-title">Bot Activity Log</div>
-    <div id="logContainer" style="overflow:hidden;flex:1"></div>
+  <!-- LEFT: LOG -->
+  <div class="side">
+    <div class="ptitle">Log do Bot</div>
+    <div class="log-wrap" id="logWrap"></div>
   </div>
 
-  <!-- CENTER CANVAS -->
-  <div class="center-panel">
-    <canvas id="battleCanvas"></canvas>
-    <div class="canvas-overlay">
-      <div class="title">Agent Swarm vs Polymarket</div>
-      <div class="sub-title" id="agentCount">0 agents converging</div>
+  <!-- CENTER: CANVAS -->
+  <div class="center" id="centerDiv">
+    <canvas id="cv"></canvas>
+    <div class="cv-top">
+      <div class="t1">100 AGENTES vs POLYMARKET</div>
+      <div class="t2" id="cvSub">aguardando…</div>
     </div>
-    <div class="bottom-hud">
-      <span id="hudLeft">Epoch 0 · Loss 0.000</span>
-      <span id="hudRight">Accuracy 0%</span>
+    <div class="demo-badge" id="demoBadge">DEMO</div>
+    <div class="cv-bot">
+      <span id="hudL">Hits: 0</span>
+      <span id="hudR">Agentes: 0 ativos</span>
     </div>
   </div>
 
-  <!-- RIGHT PANEL -->
-  <div class="panel">
-    <div class="panel-title">Live Markets</div>
-    <div id="marketsContainer"></div>
-    <div class="panel-title" style="margin-top:8px">Model Confidence</div>
-    <div id="confContainer"></div>
+  <!-- RIGHT: MARKETS -->
+  <div class="side">
+    <div class="ptitle">Mercados Ativos</div>
+    <div id="marketsEl"></div>
+    <div class="ptitle" style="margin-top:8px">Confiança do Modelo</div>
+    <div id="confEl"></div>
   </div>
 
 </div>
 
-<!-- BOTTOM ROW -->
-<div class="bottom-row">
-  <div class="bottom-panel">
-    <div class="panel-title">Binance Feed</div>
-    <div id="binanceFeed"></div>
+<!-- BOTTOM -->
+<div class="bottom">
+  <div class="bpanel">
+    <div class="ptitle" style="margin-bottom:4px">Binance Feed</div>
+    <div id="binanceEl"></div>
   </div>
-  <div class="bottom-panel">
-    <div class="panel-title">Recent Resolved</div>
-    <div id="resolvedFeed"></div>
+  <div class="bpanel">
+    <div class="ptitle" style="margin-bottom:4px">Resolvidos Recentes</div>
+    <div id="resolvedEl"></div>
   </div>
-  <div class="bottom-panel">
-    <div class="panel-title">Performance</div>
-    <canvas id="miniChart" width="220" height="70" style="margin-top:4px"></canvas>
+  <div class="bpanel">
+    <div class="ptitle" style="margin-bottom:4px">Performance P&L</div>
+    <canvas id="miniChart" style="width:100%;height:55px"></canvas>
   </div>
 </div>
 
 <script>
-// ════════════════════════════════════════
+'use strict';
+
+// ═══════════════════════════════════════════════
 //  CLOCK
-// ════════════════════════════════════════
-function updateClock() {
-  const now = new Date();
+// ═══════════════════════════════════════════════
+function tick() {
   document.getElementById('clock').textContent =
-    now.toUTCString().slice(17,25) + ' UTC';
+    new Date().toUTCString().slice(17,25) + ' UTC';
 }
-setInterval(updateClock, 1000);
-updateClock();
+setInterval(tick, 1000); tick();
 
-// ════════════════════════════════════════
-//  ANIMATED STATS
-// ════════════════════════════════════════
-let pnl = 0, bets = 0, wins = 0, total = 0;
-function animateStat(el, target, prefix='', suffix='', duration=800) {
-  const start = parseFloat(el.textContent.replace(/[^0-9.-]/g,'')) || 0;
-  const t0 = performance.now();
-  function step(t) {
-    const p = Math.min((t - t0) / duration, 1);
-    const v = start + (target - start) * p;
-    el.textContent = prefix + (v >= 0 ? '+' : '') + '$' + Math.abs(v).toLocaleString('en', {maximumFractionDigits:0});
-    if (p < 1) requestAnimationFrame(step);
+// ═══════════════════════════════════════════════
+//  BOT STATE — começa vazio, preenchido pela API
+// ═══════════════════════════════════════════════
+let botState = null;
+let connected = false;
+
+async function pollAPI() {
+  try {
+    const r = await fetch('/api/state', { signal: AbortSignal.timeout(1500) });
+    if (!r.ok) throw new Error();
+    const data = await r.json();
+    if (data && data._ts) {
+      botState = data;
+      connected = true;
+      applyState(data);
+    }
+  } catch (_) {
+    connected = false;
   }
-  requestAnimationFrame(step);
+  updateConnUI();
 }
 
-// fake growing P&L
-setInterval(() => {
-  pnl += (Math.random() * 600 - 100);
-  bets = Math.floor(Math.random() * 18) + 5;
-  const winR = 42 + Math.random() * 20;
-  document.getElementById('pnl').textContent = (pnl >= 0 ? '+' : '') + '$' + Math.abs(pnl).toFixed(0);
-  document.getElementById('pnl').className = 'value ' + (pnl >= 0 ? 'green' : 'red');
-  document.getElementById('bets').textContent = bets;
-  document.getElementById('winrate').textContent = winR.toFixed(1) + '%';
-}, 2000);
-
-// signal cycling
-const signals = ['BULLISH BTC','BEARISH ETH','NEUTRAL BNB','LONG BTC','SHORT ETH','SCANNING'];
-let sigIdx = 0;
-setInterval(() => {
-  sigIdx = (sigIdx + 1) % signals.length;
-  const el = document.getElementById('signal');
-  el.textContent = signals[sigIdx];
-  el.className = 'value ' + (signals[sigIdx].includes('BULL')||signals[sigIdx].includes('LONG') ? 'green' : signals[sigIdx].includes('BEAR')||signals[sigIdx].includes('SHORT') ? 'red' : 'yellow');
-}, 3000);
-
-// ════════════════════════════════════════
-//  LOG LINES
-// ════════════════════════════════════════
-const logMessages = [
-  ['Binance: BTC spike +2.3% detected', 'green'],
-  ['Polymarket: searching correlated markets…', ''],
-  ['Found: "BTC > 70k by Apr" @ 0.61', 'yellow'],
-  ['Signal: LONG · confidence 78%', 'green'],
-  ['Placing bet $120 on YES', 'green'],
-  ['Order confirmed · tx 0x4a2f…', 'green'],
-  ['ETH -1.8% · checking shorts', ''],
-  ['No correlated market found · skip', 'red'],
-  ['BNB +0.9% · noise · ignore', ''],
-  ['Resolving: "SOL > 200" → YES · +$44', 'green'],
-  ['Resolving: "ETH < 3k" → NO · -$30', 'red'],
-  ['Model retraining · epoch +1', 'yellow'],
-  ['Cluster convergence: 2,241 agents', 'yellow'],
-  ['Accuracy improved: 22.2% → 23.1%', 'green'],
-  ['Binance: massive BTC buy wall detected', 'green'],
-  ['Edge detected: +5.4% expected value', 'green'],
-];
-let logIdx = 0;
-function addLog() {
-  const [msg, cls] = logMessages[logIdx % logMessages.length];
-  logIdx++;
-  const div = document.createElement('div');
-  div.className = 'log-line ' + cls;
-  const ts = new Date().toISOString().slice(11,19);
-  div.textContent = '[' + ts + '] ' + msg;
-  const container = document.getElementById('logContainer');
-  container.insertBefore(div, container.firstChild);
-  if (container.children.length > 20) container.removeChild(container.lastChild);
+function updateConnUI() {
+  const dot   = document.getElementById('liveDot');
+  const lbl   = document.getElementById('liveLabel');
+  const st    = document.getElementById('connStatus');
+  const badge = document.getElementById('demoBadge');
+  if (connected) {
+    dot.className = 'dot';
+    lbl.textContent = 'BOT CONECTADO · LIVE';
+    st.textContent = 'online'; st.className = 'conn-status ok';
+    badge.style.display = 'none';
+  } else {
+    dot.className = 'dot offline';
+    lbl.textContent = 'AGUARDANDO BOT…';
+    st.textContent = 'offline'; st.className = 'conn-status err';
+    badge.style.display = 'block';
+  }
 }
-addLog();
-setInterval(addLog, 1800);
 
-// ════════════════════════════════════════
-//  MARKETS PANEL
-// ════════════════════════════════════════
-const markets = [
-  { name: 'BTC > 70k Apr', price: 0.61, change: +2.3 },
-  { name: 'ETH < 3k Mar', price: 0.38, change: -1.1 },
-  { name: 'BNB > 500 Apr', price: 0.44, change: +0.5 },
-  { name: 'SOL > 200 Mar', price: 0.71, change: +3.8 },
-  { name: 'XRP SEC win', price: 0.29, change: -2.0 },
-  { name: 'FED rate cut', price: 0.53, change: +0.8 },
-];
-function renderMarkets() {
-  markets.forEach(m => {
-    m.price = Math.max(0.05, Math.min(0.95, m.price + (Math.random()-0.5)*0.01));
-    m.change += (Math.random()-0.5)*0.5;
-  });
-  const c = document.getElementById('marketsContainer');
-  c.innerHTML = markets.map(m => `
-    <div class="market-row">
-      <span class="mname">${m.name}</span>
-      <span class="mprice ${m.price > 0.5 ? 'green':'red'}">${(m.price*100).toFixed(1)}¢</span>
-      <span class="mchange ${m.change>=0?'green':'red'}">${m.change>=0?'+':''}${m.change.toFixed(1)}%</span>
-    </div>`).join('');
+function applyState(d) {
+  const pnl = d.pnl ?? 0;
+  const el = document.getElementById('sPnl');
+  el.textContent = (pnl >= 0 ? '+' : '') + '$' + Math.abs(pnl).toFixed(2);
+  el.className = 'val ' + (pnl >= 0 ? 'g' : 'r');
+  document.getElementById('sPnlSub').textContent = d.session_label ?? 'sessão atual';
+
+  const bal = d.balance ?? 0;
+  document.getElementById('sBalance').textContent = '$' + bal.toFixed(2);
+
+  document.getElementById('sBets').textContent = d.active_bets ?? 0;
+
+  const wins = d.wins ?? 0, total = d.total_bets ?? 0;
+  const wr = total > 0 ? (wins / total * 100).toFixed(1) : '--';
+  document.getElementById('sWinRate').textContent = wr + (total > 0 ? '%' : '');
+  document.getElementById('sWinSub').textContent = wins + ' / ' + total;
+
+  const sig = d.signal ?? 'SCANNING';
+  const sel = document.getElementById('sSignal');
+  sel.textContent = sig;
+  sel.className = 'val ' + (sig.includes('BULL')||sig.includes('LONG') ? 'g'
+                           : sig.includes('BEAR')||sig.includes('SHORT') ? 'r' : 'y');
+
+  // Log
+  if (Array.isArray(d.log)) {
+    const wrap = document.getElementById('logWrap');
+    wrap.innerHTML = '';
+    d.log.slice(-30).reverse().forEach(line => {
+      const div = document.createElement('div');
+      div.className = 'log-line' +
+        (line.includes('+') ? ' g' : line.includes('-$') || line.includes('erro') ? ' r'
+         : line.includes('Signal') || line.includes('Epoch') ? ' y' : '');
+      div.textContent = line;
+      wrap.appendChild(div);
+    });
+  }
+
+  // Markets
+  if (Array.isArray(d.markets)) {
+    document.getElementById('marketsEl').innerHTML = d.markets.map(m => `
+      <div class="mrow">
+        <span class="mn">${m.name}</span>
+        <span class="mp ${m.price > 0.5 ? 'g':'r'}">${(m.price*100).toFixed(1)}¢</span>
+        <span class="${(m.change??0)>=0?'g':'r'}">${(m.change??0)>=0?'+':''}${(m.change??0).toFixed(1)}%</span>
+      </div>`).join('');
+  }
+
+  // Confidence bars
+  if (Array.isArray(d.confidence)) {
+    document.getElementById('confEl').innerHTML = d.confidence.map(c => `
+      <div class="cbar-wrap">
+        <div class="cbar-lbl"><span>${c.label}</span><span style="color:${c.color}">${c.pct}%</span></div>
+        <div class="cbar"><div class="cbar-fill" style="width:${c.pct}%;background:${c.color}"></div></div>
+      </div>`).join('');
+  }
+
+  // Binance
+  if (d.binance && typeof d.binance === 'object') {
+    document.getElementById('binanceEl').innerHTML = Object.entries(d.binance).map(([sym,v]) => `
+      <div class="ticker">
+        <span class="sym">${sym}</span>
+        <span>${typeof v.price === 'number' ? v.price.toLocaleString('en',{maximumFractionDigits:4}) : v.price}</span>
+        <span class="${(v.change??0)>=0?'g':'r'}">${(v.change??0)>=0?'+':''}${(v.change??0).toFixed(2)}%</span>
+      </div>`).join('');
+  }
+
+  // Resolved
+  if (Array.isArray(d.resolved)) {
+    document.getElementById('resolvedEl').innerHTML = d.resolved.slice(-4).map(r => `
+      <div class="ticker">
+        <span class="${r.pnl>=0?'g':'r'}" style="font-weight:bold">${r.pnl>=0?'+':''}$${Math.abs(r.pnl).toFixed(0)}</span>
+        <span class="sym" style="font-size:.57rem">${r.market}</span>
+        <span class="${r.outcome==='YES'?'g':'r'}">${r.outcome}</span>
+      </div>`).join('');
+  }
+
+  // PnL chart
+  if (typeof d.pnl === 'number') pushChart(d.pnl);
 }
-renderMarkets();
-setInterval(renderMarkets, 2500);
 
-// confidence bars
-const confs = [
-  { label: 'BTC model', pct: 78, color: '#0f8' },
-  { label: 'ETH model', pct: 62, color: '#0af' },
-  { label: 'Market timing', pct: 55, color: '#ff0' },
-  { label: 'Edge score', pct: 83, color: '#f80' },
-];
-const confEl = document.getElementById('confContainer');
-confEl.innerHTML = confs.map(c => `
-  <div class="conf-bar-wrap">
-    <div class="conf-label"><span>${c.label}</span><span style="color:${c.color}">${c.pct}%</span></div>
-    <div class="conf-bar"><div class="conf-fill" style="width:${c.pct}%;background:${c.color}"></div></div>
-  </div>`).join('');
+setInterval(pollAPI, 2000); pollAPI();
 
-// ════════════════════════════════════════
-//  BINANCE FEED
-// ════════════════════════════════════════
-const pairs = ['BTC/USDT','ETH/USDT','BNB/USDT','SOL/USDT','XRP/USDT'];
-const prices = [68420, 3215, 432, 187, 0.61];
-function renderBinance() {
-  prices.forEach((p,i) => prices[i] = p * (1 + (Math.random()-0.5)*0.002));
-  document.getElementById('binanceFeed').innerHTML = pairs.map((p,i) => {
-    const chg = (Math.random()-0.48)*2;
-    return `<div class="ticker">
-      <span style="color:#8af">${p}</span>
-      <span>${prices[i] < 1 ? prices[i].toFixed(4) : prices[i].toLocaleString('en',{maximumFractionDigits:0})}</span>
-      <span class="${chg>=0?'green':'red'}">${chg>=0?'+':''}${chg.toFixed(2)}%</span>
-    </div>`;
-  }).join('');
-}
-renderBinance();
-setInterval(renderBinance, 1500);
-
-// ════════════════════════════════════════
-//  RESOLVED FEED
-// ════════════════════════════════════════
-const resolved = [
-  ['+$44', 'SOL > 200', 'YES'],
-  ['-$30', 'ETH < 3k', 'NO'],
-  ['+$87', 'BTC > 65k', 'YES'],
-  ['+$12', 'FED pause', 'YES'],
-  ['-$55', 'XRP win', 'NO'],
-  ['+$210', 'BTC > 68k', 'YES'],
-];
-document.getElementById('resolvedFeed').innerHTML = resolved.map(([amt,mkt,out]) => `
-  <div class="ticker">
-    <span class="${amt[0]==='+' ? 'green':'red'}" style="font-weight:bold">${amt}</span>
-    <span style="color:#8af;font-size:0.6rem">${mkt}</span>
-    <span class="${out==='YES'?'green':'red'}">${out}</span>
-  </div>`).join('');
-
-// ════════════════════════════════════════
+// ═══════════════════════════════════════════════
 //  MINI CHART
-// ════════════════════════════════════════
-const mc = document.getElementById('miniChart');
+// ═══════════════════════════════════════════════
+const pnlHistory = [0];
+function pushChart(v) {
+  pnlHistory.push(v);
+  if (pnlHistory.length > 80) pnlHistory.shift();
+  drawChart();
+}
+const mc  = document.getElementById('miniChart');
 const mctx = mc.getContext('2d');
-const chartData = Array.from({length:60}, (_,i) => 5000 + Math.random()*3000 + i*80);
-function drawMiniChart() {
-  chartData.push(chartData[chartData.length-1] + (Math.random()-0.4)*400);
-  chartData.shift();
+function drawChart() {
+  mc.width  = mc.offsetWidth;
+  mc.height = mc.offsetHeight;
   const W = mc.width, H = mc.height;
+  const min = Math.min(...pnlHistory), max = Math.max(...pnlHistory);
+  const range = max - min || 1;
   mctx.clearRect(0,0,W,H);
-  const min = Math.min(...chartData), max = Math.max(...chartData);
   const grad = mctx.createLinearGradient(0,0,0,H);
-  grad.addColorStop(0,'rgba(0,255,128,0.4)');
-  grad.addColorStop(1,'rgba(0,255,128,0)');
+  grad.addColorStop(0,'rgba(0,255,136,.35)');
+  grad.addColorStop(1,'rgba(0,255,136,0)');
   mctx.beginPath();
-  chartData.forEach((v,i) => {
-    const x = i/(chartData.length-1)*W;
-    const y = H - (v-min)/(max-min)*H*0.9 - 4;
+  pnlHistory.forEach((v,i) => {
+    const x = i/(pnlHistory.length-1)*W;
+    const y = H - (v-min)/range * H * .85 - 3;
     i===0 ? mctx.moveTo(x,y) : mctx.lineTo(x,y);
   });
-  mctx.strokeStyle = '#0f8';
-  mctx.lineWidth = 1.5;
-  mctx.stroke();
+  mctx.strokeStyle = '#00ff88'; mctx.lineWidth = 1.5; mctx.stroke();
   mctx.lineTo(W,H); mctx.lineTo(0,H); mctx.closePath();
-  mctx.fillStyle = grad;
-  mctx.fill();
+  mctx.fillStyle = grad; mctx.fill();
 }
-drawMiniChart();
-setInterval(drawMiniChart, 500);
+drawChart();
 
-// ════════════════════════════════════════
-//  BATTLE CANVAS — 100 AGENTS vs POLYMARKET
-// ════════════════════════════════════════
-const canvas = document.getElementById('battleCanvas');
-const ctx = canvas.getContext('2d');
+// ═══════════════════════════════════════════════
+//  DEFAULT EMPTY MARKETS / CONF (mostrado offline)
+// ═══════════════════════════════════════════════
+document.getElementById('marketsEl').innerHTML = `
+  <div style="font-size:.6rem;color:var(--dim);padding:6px 0">
+    Conecte seu bot para ver mercados ao vivo
+  </div>`;
+document.getElementById('confEl').innerHTML = `
+  <div style="font-size:.6rem;color:var(--dim)">
+    Aguardando dados do modelo…
+  </div>`;
+document.getElementById('binanceEl').innerHTML = `
+  <div class="ticker"><span class="sym">BTC/USDT</span><span style="color:var(--dim)">--</span><span>--%</span></div>
+  <div class="ticker"><span class="sym">ETH/USDT</span><span style="color:var(--dim)">--</span><span>--%</span></div>`;
 
-function resize() {
-  canvas.width = canvas.offsetWidth;
-  canvas.height = canvas.offsetHeight;
+// ═══════════════════════════════════════════════
+//  CANVAS BATTLE ANIMATION
+// ═══════════════════════════════════════════════
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const center = document.getElementById('centerDiv');
+
+function resizeCanvas() {
+  cv.width  = center.clientWidth;
+  cv.height = center.clientHeight;
 }
-resize();
-window.addEventListener('resize', resize);
+resizeCanvas();
+new ResizeObserver(resizeCanvas).observe(center);
 
-// Target = Polymarket "eye"
-const TARGET = { x: 0.72, y: 0.5, r: 22 };
+// ── Cube ──
+const cube = {
+  hitFlash: 0, shakeX: 0, shakeY: 0, totalHits: 0,
+  size: 38,
+  takeHit() {
+    this.hitFlash = 1;
+    this.shakeX = (Math.random()-.5)*14;
+    this.shakeY = (Math.random()-.5)*14;
+    this.totalHits++;
+    document.getElementById('hudL').textContent = 'Hits: ' + this.totalHits;
+  },
+  update() {
+    this.hitFlash = Math.max(0, this.hitFlash - .055);
+    this.shakeX  *= .65;
+    this.shakeY  *= .65;
+  }
+};
+
+function drawCube(cx, cy) {
+  const f = cube.hitFlash;
+  const x = cx + cube.shakeX, y = cy + cube.shakeY;
+  const s = cube.size;
+
+  // Isometric cube faces
+  // Top face (diamond)
+  const topPts = [
+    [x,        y - s*.55],
+    [x + s*.7, y - s*.18],
+    [x,        y + s*.18],
+    [x - s*.7, y - s*.18],
+  ];
+  // Left face
+  const leftPts = [
+    [x - s*.7, y - s*.18],
+    [x,        y + s*.18],
+    [x,        y + s*.75],
+    [x - s*.7, y + s*.4],
+  ];
+  // Right face
+  const rightPts = [
+    [x,        y + s*.18],
+    [x + s*.7, y - s*.18],
+    [x + s*.7, y + s*.4],
+    [x,        y + s*.75],
+  ];
+
+  const face = (pts, fill, stroke) => {
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    pts.slice(1).forEach(p => ctx.lineTo(p[0], p[1]));
+    ctx.closePath();
+    ctx.fillStyle = fill; ctx.fill();
+    ctx.strokeStyle = stroke; ctx.lineWidth = 1.2; ctx.stroke();
+  };
+
+  if (f > 0.01) {
+    // HIT flash — white/red
+    const r = Math.floor(255);
+    const g = Math.floor(f * 80);
+    face(topPts,   `rgba(255,255,255,${f*.9})`,  '#ff4400');
+    face(leftPts,  `rgba(${r},${g},0,${.7+f*.3})`, '#ff2200');
+    face(rightPts, `rgba(${r},0,0,${.6+f*.3})`,  '#cc0000');
+    // Impact rings
+    for (let r2 = 32; r2 <= 90; r2 += 18) {
+      ctx.save();
+      ctx.globalAlpha = f * .3 * (1 - r2/100);
+      ctx.beginPath();
+      ctx.arc(x, y, r2 + (1-f)*25, 0, Math.PI*2);
+      ctx.strokeStyle = '#ff5500'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.restore();
+    }
+  } else {
+    // Normal state — blue-teal
+    face(topPts,   '#003344', '#00ccff');
+    face(leftPts,  '#001e2e', '#0088bb');
+    face(rightPts, '#000f1a', '#005577');
+    // Glow edges only
+    ctx.save();
+    ctx.shadowColor = '#00ccff'; ctx.shadowBlur = 12;
+    face(topPts, 'transparent', '#00eeff');
+    ctx.restore();
+  }
+
+  // Label
+  ctx.save();
+  ctx.fillStyle = f > .1 ? `rgba(255,${Math.floor(f*120)},0,1)` : '#00aadd';
+  ctx.font = 'bold 10px Courier New';
+  ctx.textAlign = 'center';
+  ctx.shadowColor = f > .1 ? '#ff4400' : '#00aadd';
+  ctx.shadowBlur = 10;
+  ctx.fillText('POLYMARKET', x, y + s * 1.25);
+  ctx.restore();
+}
+
+// ── Agents ──
+const NUM_AGENTS = 100;
+const agents = [];
 
 class Agent {
   constructor(id) {
     this.id = id;
     this.reset();
+    // Stagger shoot timers
+    this.shootTimer = Math.random() * 120;
   }
   reset() {
-    // spawn on the left cluster area
-    const side = Math.random();
-    if (side < 0.5) {
-      // left side swarm
-      this.x = canvas.width * (0.05 + Math.random() * 0.25);
-      this.y = canvas.height * (0.1 + Math.random() * 0.8);
-    } else {
-      // scattered
-      this.x = canvas.width * (Math.random() * 0.5);
-      this.y = canvas.height * (Math.random());
-    }
-    this.win = Math.random() > 0.38;
-    this.color = this.win ? '#00ff88' : '#ff3344';
-    this.glowColor = this.win ? 'rgba(0,255,136,' : 'rgba(255,51,68,';
-    this.speed = 1.2 + Math.random() * 2.5;
-    this.size = 1 + Math.random() * 2.5;
-    this.trail = [];
-    this.trailLen = Math.floor(8 + Math.random() * 20);
-    this.arrived = false;
-    this.alpha = 0.4 + Math.random() * 0.6;
-    // Some agents are "streaks" (horizontal bar style like img2)
-    this.isStreak = Math.random() > 0.55;
-    this.streakW = this.isStreak ? (20 + Math.random() * 80) : 0;
+    // Spawn in left ~40% of canvas, distributed vertically
+    this.bx = cv.width * (.03 + Math.random() * .38);
+    this.by = cv.height * (.03 + Math.random() * .94);
+    this.x  = this.bx;
+    this.y  = this.by;
+    this.driftA  = Math.random() * Math.PI * 2;
+    this.driftR  = 4 + Math.random() * 12;
+    this.driftSpd= .008 + Math.random() * .012;
+    this.shootInt= 50 + Math.random() * 100; // frames between shots
+    this.size    = 1.5 + Math.random() * 2.5;
+    this.alpha   = .5 + Math.random() * .5;
   }
-
-  update(tx, ty) {
-    if (this.arrived) return;
-    const dx = tx - this.x;
-    const dy = ty - this.y;
-    const dist = Math.sqrt(dx*dx + dy*dy);
-    if (dist < 18) {
-      this.arrived = true;
-      // explode effect handled in draw
-      return;
+  update(lasers, cubeX, cubeY) {
+    this.driftA += this.driftSpd;
+    this.x = this.bx + Math.cos(this.driftA) * this.driftR;
+    this.y = this.by + Math.sin(this.driftA) * this.driftR;
+    this.shootTimer--;
+    if (this.shootTimer <= 0) {
+      lasers.push(new Laser(this.x, this.y, cubeX, cubeY));
+      this.shootTimer = this.shootInt;
     }
-    const nx = dx/dist, ny = dy/dist;
-    // Add slight wobble
-    const wx = (Math.random()-0.5)*0.4;
-    const wy = (Math.random()-0.5)*0.4;
-    this.trail.push({x: this.x, y: this.y});
-    if (this.trail.length > this.trailLen) this.trail.shift();
-    this.x += (nx + wx) * this.speed;
-    this.y += (ny + wy) * this.speed;
   }
-
-  draw(ctx) {
-    if (this.arrived) return;
-    // Draw trail
-    for (let i = 0; i < this.trail.length; i++) {
-      const t = i / this.trail.length;
-      const alpha = t * this.alpha * 0.6;
-      if (this.isStreak) {
-        // horizontal bar trail
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = this.color;
-        const bw = this.streakW * t;
-        const bh = this.size * 0.8;
-        ctx.fillRect(this.trail[i].x - bw, this.trail[i].y - bh/2, bw, bh);
-        ctx.restore();
-      } else {
-        ctx.beginPath();
-        ctx.arc(this.trail[i].x, this.trail[i].y, this.size * t, 0, Math.PI*2);
-        ctx.fillStyle = this.glowColor + alpha + ')';
-        ctx.fill();
-      }
-    }
-    // Draw head
+  draw() {
+    // Small triangle pointing right (toward cube)
+    const s = this.size;
     ctx.save();
     ctx.globalAlpha = this.alpha;
-    if (this.isStreak) {
-      // bar head
-      ctx.shadowColor = this.color;
-      ctx.shadowBlur = 6;
-      ctx.fillStyle = this.color;
-      ctx.fillRect(this.x - this.streakW*0.3, this.y - this.size/2, this.streakW*0.3, this.size);
-    } else {
-      ctx.shadowColor = this.color;
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
-      ctx.fillStyle = this.color;
-      ctx.fill();
-    }
+    ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 6;
+    ctx.fillStyle = '#00ff88';
+    ctx.beginPath();
+    ctx.moveTo(this.x + s*2, this.y);
+    ctx.lineTo(this.x - s,   this.y - s);
+    ctx.lineTo(this.x - s,   this.y + s);
+    ctx.closePath();
+    ctx.fill();
     ctx.restore();
   }
 }
 
-// Create 100 agents
-const agents = Array.from({length: 100}, (_,i) => new Agent(i));
+// ── Lasers ──
+const lasers = [];
 
-// Explosion particles
-const explosions = [];
-class Explosion {
-  constructor(x, y, color) {
-    this.x = x; this.y = y; this.color = color;
-    this.particles = Array.from({length: 8}, () => ({
-      vx: (Math.random()-0.5)*4,
-      vy: (Math.random()-0.5)*4,
-      life: 1,
-      r: 1 + Math.random()*2
-    }));
-    this.life = 1;
+class Laser {
+  constructor(sx, sy, tx, ty) {
+    this.sx = sx; this.sy = sy;
+    this.tx = tx; this.ty = ty;
+    this.t  = 0;
+    this.spd = .025 + Math.random() * .025;
+    this.w   = .8 + Math.random() * 1.5;
+    this.hit = false;
   }
   update() {
-    this.life -= 0.04;
-    this.particles.forEach(p => {
-      p.x = (p.x||this.x) + p.vx;
-      p.y = (p.y||this.y) + p.vy;
-      p.vx *= 0.9; p.vy *= 0.9;
-      p.life -= 0.05;
-    });
+    this.t += this.spd;
+    if (this.t >= 1 && !this.hit) {
+      this.hit = true;
+      cube.takeHit();
+    }
+    return this.t < 1.5;
   }
-  draw(ctx) {
-    this.particles.forEach(p => {
-      if (p.life <= 0) return;
-      ctx.save();
-      ctx.globalAlpha = p.life * this.life;
-      ctx.beginPath();
-      ctx.arc(p.x||this.x, p.y||this.y, p.r, 0, Math.PI*2);
-      ctx.fillStyle = this.color;
-      ctx.shadowColor = this.color;
-      ctx.shadowBlur = 4;
-      ctx.fill();
-      ctx.restore();
-    });
+  draw() {
+    const p = Math.min(this.t, 1);
+    const hx = this.sx + (this.tx - this.sx) * p;
+    const hy = this.sy + (this.ty - this.sy) * p;
+    const tp = Math.max(0, p - .12);
+    const tx2 = this.sx + (this.tx - this.sx) * tp;
+    const ty2 = this.sy + (this.ty - this.sy) * tp;
+    const fade = Math.max(0, 1 - Math.max(0, this.t - 1) * 5);
+
+    ctx.save();
+    ctx.globalAlpha = fade;
+    // Beam
+    ctx.beginPath();
+    ctx.moveTo(tx2, ty2);
+    ctx.lineTo(hx, hy);
+    ctx.strokeStyle = '#ff1100';
+    ctx.lineWidth = this.w;
+    ctx.shadowColor = '#ff3300'; ctx.shadowBlur = 8;
+    ctx.stroke();
+    // Bright head
+    ctx.beginPath();
+    ctx.arc(hx, hy, this.w * 2, 0, Math.PI*2);
+    ctx.fillStyle = '#ff8866'; ctx.shadowBlur = 12; ctx.fill();
+    ctx.restore();
   }
 }
 
-let epoch = 779, loss = 0.00765, accuracy = 22.2;
-let frameCount = 0;
+// Build agents once canvas is sized
+for (let i = 0; i < NUM_AGENTS; i++) agents.push(new Agent(i));
 
-function drawBattle() {
-  const W = canvas.width, H = canvas.height;
-  // Fade background
-  ctx.fillStyle = 'rgba(1,8,16,0.18)';
+// ── Render loop ──
+let frame = 0;
+function render() {
+  const W = cv.width, H = cv.height;
+  const cubeX = W * .62, cubeY = H * .5;
+
+  // Fade trail
+  ctx.fillStyle = 'rgba(1,8,16,.2)';
   ctx.fillRect(0,0,W,H);
 
-  const tx = W * TARGET.x;
-  const ty = H * TARGET.y;
+  // Subtle ambient glow around cube
+  const aGrad = ctx.createRadialGradient(cubeX,cubeY,10,cubeX,cubeY,W*.22);
+  aGrad.addColorStop(0, cube.hitFlash > .1 ? 'rgba(255,80,0,.04)' : 'rgba(0,120,200,.02)');
+  aGrad.addColorStop(1,'transparent');
+  ctx.fillStyle = aGrad;
+  ctx.fillRect(0,0,W,H);
 
-  // ── Draw background nebula clouds ──
-  if (frameCount % 90 === 0) {
-    ctx.save();
-    ctx.globalAlpha = 0.015;
-    const ng = ctx.createRadialGradient(W*0.72,H*0.5,10,W*0.72,H*0.5,W*0.3);
-    ng.addColorStop(0,'#f84');
-    ng.addColorStop(0.4,'#f0a');
-    ng.addColorStop(1,'transparent');
-    ctx.fillStyle = ng;
-    ctx.fillRect(0,0,W,H);
-    ctx.restore();
-  }
+  // Update cube
+  cube.update();
 
-  // ── Target: Polymarket ──
-  // Outer glow rings
-  for (let r = 60; r >= 20; r -= 10) {
-    const alpha = (60 - r) / 60 * 0.15 + 0.03;
-    ctx.beginPath();
-    ctx.arc(tx, ty, r + Math.sin(frameCount*0.05)*3, 0, Math.PI*2);
-    ctx.strokeStyle = `rgba(255,140,0,${alpha})`;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
-  // Core
-  const tGrad = ctx.createRadialGradient(tx,ty,2,tx,ty,TARGET.r);
-  tGrad.addColorStop(0,'#fff8d0');
-  tGrad.addColorStop(0.4,'#ffaa00');
-  tGrad.addColorStop(1,'rgba(255,80,0,0)');
-  ctx.beginPath();
-  ctx.arc(tx,ty,TARGET.r,0,Math.PI*2);
-  ctx.fillStyle = tGrad;
-  ctx.fill();
-  // Label
-  ctx.save();
-  ctx.globalAlpha = 0.9;
-  ctx.fillStyle = '#ffaa00';
-  ctx.font = 'bold 11px Courier New';
-  ctx.textAlign = 'center';
-  ctx.shadowColor = '#ff8800';
-  ctx.shadowBlur = 10;
-  ctx.fillText('POLYMARKET', tx, ty + TARGET.r + 16);
-  ctx.fillText('⬤', tx, ty + TARGET.r + 28);
-  ctx.restore();
-
-  // ── Update & draw agents ──
+  // Update & draw agents
   let active = 0;
   agents.forEach(a => {
-    if (!a.arrived) {
-      a.update(tx, ty);
-      a.draw(ctx);
-      active++;
-    } else {
-      // respawn after short delay
-      if (Math.random() < 0.008) {
-        explosions.push(new Explosion(tx, ty, a.color));
-        a.reset();
-      }
-    }
+    // Reposition base if canvas resized
+    if (a.bx > W * .45) a.reset();
+    a.update(lasers, cubeX, cubeY);
+    a.draw();
+    active++;
   });
 
-  // ── Explosions ──
-  for (let i = explosions.length - 1; i >= 0; i--) {
-    explosions[i].update();
-    explosions[i].draw(ctx);
-    if (explosions[i].life <= 0) explosions.splice(i,1);
+  // Update & draw lasers
+  for (let i = lasers.length - 1; i >= 0; i--) {
+    const alive = lasers[i].update();
+    if (alive) lasers[i].draw(); else lasers.splice(i,1);
   }
 
-  // ── Cluster labels ──
-  const clusters = [
-    {x:0.15,y:0.3,label:'BINANCE',sub:'42 agents',color:'#0f8'},
-    {x:0.08,y:0.65,label:'SENTIMENT',sub:'28 agents',color:'#0af'},
-    {x:0.35,y:0.15,label:'MOMENTUM',sub:'15 agents',color:'#f80'},
-    {x:0.3,y:0.75,label:'VOLUME',sub:'15 agents',color:'#f0a'},
-  ];
-  clusters.forEach(cl => {
-    const cx = W*cl.x, cy = H*cl.y;
-    // Cluster glow
-    const cg = ctx.createRadialGradient(cx,cy,2,cx,cy,35);
-    cg.addColorStop(0, cl.color + '33');
-    cg.addColorStop(1,'transparent');
-    ctx.beginPath();
-    ctx.arc(cx,cy,35,0,Math.PI*2);
-    ctx.fillStyle = cg;
-    ctx.fill();
-    // Label
-    ctx.save();
-    ctx.globalAlpha = 0.8;
-    ctx.fillStyle = cl.color;
-    ctx.font = 'bold 10px Courier New';
-    ctx.textAlign = 'center';
-    ctx.shadowColor = cl.color;
-    ctx.shadowBlur = 8;
-    ctx.fillText(cl.label, cx, cy - 20);
-    ctx.font = '9px Courier New';
-    ctx.globalAlpha = 0.5;
-    ctx.fillText(cl.sub, cx, cy - 8);
-    ctx.restore();
-  });
+  // Draw cube on top
+  drawCube(cubeX, cubeY);
 
-  // ── HUD update ──
-  frameCount++;
-  if (frameCount % 180 === 0) {
-    epoch++;
-    loss = Math.max(0.001, loss * (0.98 + Math.random()*0.04));
-    accuracy = Math.min(99, accuracy + (Math.random()-0.3)*0.5);
-    document.getElementById('hudLeft').textContent =
-      `Epoch ${epoch} · Loss ${loss.toFixed(5)}`;
-    document.getElementById('hudRight').textContent =
-      `Accuracy ${accuracy.toFixed(1)}%`;
-    document.getElementById('agentCount').textContent =
-      `${active} agents converging on target`;
+  // HUD
+  if (frame % 30 === 0) {
+    document.getElementById('hudR').textContent = `Agentes: ${active} · Lasers: ${lasers.length}`;
+    document.getElementById('cvSub').textContent =
+      connected ? `${active} agentes atacando · ${cube.totalHits} hits` : 'animação de batalha ativa';
   }
 
-  requestAnimationFrame(drawBattle);
+  frame++;
+  requestAnimationFrame(render);
 }
 
-// Wait for layout
-setTimeout(() => {
-  resize();
-  drawBattle();
-}, 100);
+// Wait for layout then start
+requestAnimationFrame(() => {
+  resizeCanvas();
+  // Reset agent bases after resize
+  agents.forEach(a => a.reset());
+  render();
+});
 </script>
 </body>
 </html>
