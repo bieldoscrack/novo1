@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <title>Polymarket Hunter · Dashboard</title>
@@ -7,21 +7,25 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 :root {
   --bg:      #000000;
-  --panel:   #060606;
-  --border:  rgba(0,255,70,0.18);
+  --panel:   #050505;
+  --border:  rgba(0,255,70,0.15);
   --green:   #00ff41;
   --green2:  #39ff14;
   --red:     #ff3344;
+  --yellow:  #ffee00;
+  --cyan:    #00eeff;
+  --orange:  #ff8800;
   --dim:     #1a7a35;
+  --log-bg:  #020802;
 }
-body {
+html, body {
   background: var(--bg);
   color: #00ff41;
   font-family: 'Courier New', monospace;
-  display: flex;
-  flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ── TOPBAR ── */
@@ -29,26 +33,22 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 20px;
+  padding: 7px 18px;
   border-bottom: 1px solid var(--border);
   background: #020202;
   flex-shrink: 0;
 }
-.brand { color: var(--green2); font-size: 1rem; font-weight: bold; letter-spacing: 3px;
+.brand { color: var(--green2); font-size: .95rem; font-weight: bold; letter-spacing: 3px;
          text-shadow: 0 0 10px var(--green2); }
-.live-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 0.6rem; color: #00cc30;
-  margin-left: 80px;
-}
+.live-badge { display:inline-flex; align-items:center; gap:5px; font-size:.58rem; color:#00cc30; margin-left:60px; }
 .dot { width:7px; height:7px; border-radius:50%; background:var(--green);
        box-shadow:0 0 8px var(--green); animation:blink 1.2s infinite; }
 .dot.offline { background:#333; box-shadow:none; animation:none; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
-.conn-status { font-size:0.58rem; }
+.conn-status { font-size:.56rem; }
 .conn-status.ok  { color:var(--green); }
 .conn-status.err { color:var(--red); }
-.clock { font-size:0.65rem; color:#009920; text-align:right; }
+.clock { font-size:.62rem; color:#009920; text-align:right; }
 
 /* ── STATS ── */
 .stats-row {
@@ -57,109 +57,167 @@ body {
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
-.stat {
-  padding: 10px 16px;
-  border-right: 1px solid var(--border);
-  background: #040404;
-}
-.stat:last-child { border-right: none; }
-.stat .lbl { font-size:0.55rem; color:#007718; text-transform:uppercase; letter-spacing:1px; }
-.stat .val { font-size:1.4rem; font-weight:bold; margin-top:2px; }
-.stat .sub { font-size:0.55rem; color:#007718; margin-top:2px; }
-.g { color:var(--green); text-shadow: 0 0 6px var(--green); }
-.r { color:var(--red); }
-.c { color:var(--green2); }
-.y { color:#00ee30; }
+.stat { padding:8px 14px; border-right:1px solid var(--border); background:#040404; }
+.stat:last-child { border-right:none; }
+.stat .lbl { font-size:.52rem; color:#007718; text-transform:uppercase; letter-spacing:1px; }
+.stat .val { font-size:1.35rem; font-weight:bold; margin-top:2px; transition: color .3s; }
+.stat .sub { font-size:.52rem; color:#007718; margin-top:2px; }
+.stat .val.flash { animation: numflash .4s ease; }
+@keyframes numflash { 0%{opacity:.3} 50%{opacity:1;text-shadow:0 0 20px currentColor} 100%{opacity:1} }
+.g  { color:var(--green);  text-shadow:0 0 6px var(--green); }
+.r  { color:var(--red); }
+.c  { color:var(--cyan);   text-shadow:0 0 4px var(--cyan); }
+.y  { color:var(--yellow); }
+.or { color:var(--orange); }
 
-/* ── MAIN ── */
+/* ── LAYOUT ── */
 .main {
   display: grid;
-  grid-template-columns: 220px 1fr 220px;
+  grid-template-columns: 1fr 220px 220px;
   flex: 1;
   overflow: hidden;
   border-bottom: 1px solid var(--border);
+  min-height: 0;
 }
+
+/* ── CMD LOG (esquerda, grande) ── */
+.cmd-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--log-bg);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  min-height: 0;
+}
+.cmd-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border);
+  background: #010601;
+  flex-shrink: 0;
+}
+.cmd-title { font-size:.52rem; color:var(--green); letter-spacing:2px; text-transform:uppercase;
+             text-shadow:0 0 8px var(--green); }
+.cmd-badge { font-size:.45rem; color:#005510; }
+.cmd-count { font-size:.45rem; color:#004410; }
+.cmd-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column-reverse;
+  padding: 4px 0;
+  min-height: 0;
+}
+.cmd-scroll::-webkit-scrollbar { width:4px; }
+.cmd-scroll::-webkit-scrollbar-track { background:#010301; }
+.cmd-scroll::-webkit-scrollbar-thumb { background:#003310; border-radius:2px; }
+
+.log-line {
+  font-size: .62rem;
+  padding: 1.5px 10px 1.5px 8px;
+  border-left: 2px solid transparent;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+/* cores por tipo de linha */
+.ll-win    { color:#00ff88; border-left-color:#00ff8866; background:rgba(0,255,136,.03); }
+.ll-loss   { color:#ff4455; border-left-color:#ff445566; background:rgba(255,68,85,.03); }
+.ll-pnl    { color:#00ffcc; border-left-color:#00ffcc55; font-weight:bold; }
+.ll-price  { color:#00ccff; border-left-color:#00ccff44; }
+.ll-signal { color:var(--yellow); border-left-color:#ffee0044; }
+.ll-err    { color:#ff6666; border-left-color:#ff666666; background:rgba(255,0,0,.05); }
+.ll-info   { color:#00dd44; border-left-color:#00dd4444; }
+.ll-sep    { color:#004420; border-left-color:transparent; letter-spacing:1px; }
+.ll-arb    { color:#ff8800; border-left-color:#ff880055; font-weight:bold; }
+.ll-scan   { color:#009922; border-left-color:#00992244; }
+.ll-bet    { color:#ffaa00; border-left-color:#ffaa0055; }
+.ll-default{ color:#00882a; border-left-color:#00882a33; }
+
+/* New line flash */
+.log-line.new { animation: linein .35s ease; }
+@keyframes linein { from{opacity:0; transform:translateX(-6px)} to{opacity:1; transform:translateX(0)} }
+
+/* ── RIGHT PANELS ── */
 .side {
   background: #030303;
   border-right: 1px solid var(--border);
-  padding: 10px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  overflow: hidden;
+  gap: 6px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
 }
-.side:last-child { border-right:none; border-left:1px solid var(--border); }
+.side:last-child { border-right: none; }
+.side::-webkit-scrollbar { width:3px; }
+.side::-webkit-scrollbar-thumb { background:#003310; }
+
 .ptitle {
-  font-size:0.55rem; color:var(--green);
+  font-size:.52rem; color:var(--green);
   text-transform:uppercase; letter-spacing:2px;
-  border-bottom:1px solid var(--border); padding-bottom:5px;
-  text-shadow: 0 0 8px var(--green);
+  border-bottom:1px solid var(--border); padding-bottom:4px;
+  text-shadow:0 0 8px var(--green); flex-shrink:0;
 }
 
-/* log */
-.log-wrap { overflow:hidden; flex:1; display:flex; flex-direction:column-reverse; }
-.log-line { font-size:0.6rem; padding:2px 0 2px 6px; border-left:2px solid #00ff4144; color:#00bb30; line-height:1.4; }
-.log-line.g { color:var(--green); border-left-color:#00ff4166; }
-.log-line.r { color:var(--red);   border-left-color:#ff334455; }
-.log-line.y { color:#00ee30;      border-left-color:#00ee3055; }
+/* markets */
+.mrow { display:flex; justify-content:space-between; font-size:.6rem;
+        padding:3px 0; border-bottom:1px solid var(--border); gap:4px; }
+.mrow .mn { color:#00bb30; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+.mrow .mp { font-weight:bold; flex-shrink:0; }
 
-/* market rows */
-.mrow { display:flex; justify-content:space-between; font-size:0.62rem;
-        padding:3px 0; border-bottom:1px solid var(--border); }
-.mrow .mn { color:#00bb30; } .mrow .mp { font-weight:bold; }
+/* modules */
+.mod-block { margin-bottom:6px; border-left:2px solid #00aa33; padding-left:5px; }
+.mod-name  { font-size:.56rem; color:#00ff88; letter-spacing:.5px; font-weight:bold; }
+.mod-status{ font-size:.48rem; color:#00cc44; border:1px solid #003300; padding:1px 4px; }
+.mod-row   { display:flex; justify-content:space-between; font-size:.5rem;
+             color:#007718; line-height:1.5; gap:4px; }
+.mod-row span:last-child { color:#00cc44; text-align:right; }
 
-/* conf bars */
-.cbar-wrap { margin:3px 0; }
-.cbar-lbl { font-size:0.58rem; color:#009920; display:flex; justify-content:space-between; margin-bottom:2px; }
-.cbar { height:3px; background:#00ff4115; border-radius:2px; overflow:hidden; }
-.cbar-fill { height:100%; border-radius:2px; }
-
-/* ── CENTER ── */
-.center { background:#000000; position:relative; overflow:hidden; }
-#cv { display:block; }
-.cv-top {
-  position:absolute; top:10px; left:0; right:0;
-  text-align:center; pointer-events:none;
-}
-.cv-top .t1 { font-size:0.58rem; color:rgba(0,255,65,.8); letter-spacing:3px; text-transform:uppercase;
-              text-shadow: 0 0 12px #00ff41; }
-.cv-top .t2 { font-size:0.52rem; color:rgba(0,200,50,.5); }
-.cv-bot {
-  position:absolute; bottom:6px; left:10px; right:10px;
-  display:flex; justify-content:space-between;
-  font-size:0.55rem; color:rgba(0,255,65,.45); pointer-events:none;
-}
-.demo-badge {
-  position:absolute; top:10px; right:10px;
-  font-size:0.5rem; background:#ff440022; border:1px solid #ff4444;
-  color:#ff6666; padding:2px 6px; letter-spacing:1px; display:none;
-}
+/* binance ticker */
+.tick-row { display:flex; justify-content:space-between; font-size:.58rem;
+            padding:2px 0; border-bottom:1px solid var(--border); }
+.tick-sym { color:#00bb30; }
+.tick-price { font-weight:bold; }
+.tick-chg   { font-size:.5rem; }
 
 /* ── BOTTOM ── */
 .bottom {
-  display:grid;
+  display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   flex-shrink: 0;
-  height: 90px;
+  height: 88px;
   border-top: 1px solid var(--border);
 }
-.bpanel {
-  background:#030303;
-  padding:8px 12px;
-  border-right:1px solid var(--border);
-  overflow:hidden;
-}
+.bpanel { background:#030303; padding:7px 11px; border-right:1px solid var(--border); overflow:hidden; }
 .bpanel:last-child { border-right:none; }
-.ticker { display:flex; justify-content:space-between; font-size:0.6rem;
-          padding:2px 0; border-bottom:1px solid var(--border); }
-.ticker .sym { color:#00bb30; }
+
+/* win/loss */
+.wl-wrap { display:flex; gap:20px; align-items:center; margin-top:4px; }
+.wl-num  { font-size:1.55rem; font-weight:bold; line-height:1.1; }
+.wl-lbl  { font-size:.48rem; color:#007718; letter-spacing:1px; }
+.wl-bar  { flex:1; }
+.wl-bar-track { height:4px; background:#00220a; border-radius:2px; overflow:hidden; margin-top:6px; }
+.wl-bar-fill  { height:100%; background:linear-gradient(90deg,#00ff41,#39ff14); border-radius:2px;
+                transition:width .6s ease; }
+
+/* resolved */
+.res-row { display:flex; justify-content:space-between; font-size:.58rem;
+           padding:2px 0; border-bottom:1px solid var(--border); }
+
+/* pnl chart */
+#miniChart { display:block; }
 </style>
 </head>
 <body>
 
-<!-- TOP -->
+<!-- TOPBAR -->
 <div class="topbar">
-  <div style="display:flex;align-items:center;">
+  <div style="display:flex;align-items:center;gap:0">
     <div class="brand">DEV: B AND L</div>
     <div class="live-badge">
       <span class="dot" id="liveDot"></span>
@@ -170,14 +228,14 @@ body {
   </div>
   <div>
     <div class="clock" id="clock"></div>
-    <div style="font-size:.55rem;color:#007718;text-align:right">POST /api/update para conectar</div>
+    <div style="font-size:.48rem;color:#005510;text-align:right" id="lastUpdate">sem dados</div>
   </div>
 </div>
 
 <!-- STATS -->
 <div class="stats-row">
   <div class="stat">
-    <div class="lbl">Total P&L</div>
+    <div class="lbl">Total P&amp;L</div>
     <div class="val g" id="sPnl">$0.00</div>
     <div class="sub" id="sPnlSub">sem dados</div>
   </div>
@@ -197,39 +255,42 @@ body {
     <div class="sub" id="sWinSub">0 / 0</div>
   </div>
   <div class="stat">
-    <div class="lbl">Sinal Binance</div>
+    <div class="lbl">Sinal</div>
     <div class="val y" id="sSignal">SCANNING</div>
-    <div class="sub">BTC · ETH · BNB</div>
+    <div class="sub">status do bot</div>
   </div>
 </div>
 
 <!-- MAIN -->
 <div class="main">
 
-  <!-- LEFT: LOG -->
-  <div class="side">
-    <div class="ptitle">Log do Bot</div>
-    <div class="log-wrap" id="logWrap"></div>
+  <!-- CMD LOG -->
+  <div class="cmd-panel">
+    <div class="cmd-header">
+      <div>
+        <div class="cmd-title">&#x25B6; Output do Bot — Ao Vivo</div>
+        <div class="cmd-badge" id="cmdBadge">aguardando conexão…</div>
+      </div>
+      <div class="cmd-count" id="logCount">0 linhas</div>
+    </div>
+    <div class="cmd-scroll" id="logScroll"></div>
   </div>
 
-  <!-- CENTER: CANVAS -->
-  <div class="center" id="centerDiv">
-    <canvas id="cv"></canvas>
-    <div class="cv-top">
-      <div class="t1">dont cry</div>
-      <div class="t2" id="cvSub">aguardando…</div>
-    </div>
-    <div class="cv-bot">
-      <span id="hudL">Hits: 0</span>
-      <span id="hudR">Agentes: 0 ativos</span>
-    </div>
-  </div>
-
-  <!-- RIGHT: MARKETS -->
+  <!-- MARKETS + BINANCE -->
   <div class="side">
     <div class="ptitle">Mercados Ativos</div>
-    <div id="marketsEl"></div>
-    <div class="ptitle" style="margin-top:8px">Dashboard</div>
+    <div id="marketsEl">
+      <div style="font-size:.58rem;color:#006615;padding:4px 0">Conecte o bot para ver mercados ao vivo</div>
+    </div>
+    <div class="ptitle" style="margin-top:6px">Binance Feed</div>
+    <div id="binanceEl">
+      <div style="font-size:.55rem;color:#006615;padding:4px 0">—</div>
+    </div>
+  </div>
+
+  <!-- MODULES -->
+  <div class="side">
+    <div class="ptitle">Módulos do Bot</div>
     <div id="modulesEl"></div>
   </div>
 
@@ -238,542 +299,341 @@ body {
 <!-- BOTTOM -->
 <div class="bottom">
   <div class="bpanel">
-    <div class="ptitle" style="margin-bottom:6px">Win / Loss</div>
-    <div id="winlossEl" style="display:flex;gap:24px;align-items:center">
+    <div class="ptitle" style="margin-bottom:4px">Win / Loss</div>
+    <div class="wl-wrap">
       <div style="text-align:center">
-        <div style="font-size:0.5rem;color:#007718;letter-spacing:1px">WIN</div>
-        <div id="wlWins" style="font-size:1.6rem;font-weight:bold;color:#00ff41;text-shadow:0 0 10px #00ff41;line-height:1.1">0</div>
+        <div class="wl-lbl">WIN</div>
+        <div class="wl-num g" id="wlWins">0</div>
       </div>
       <div style="text-align:center">
-        <div style="font-size:0.5rem;color:#007718;letter-spacing:1px">LOSS</div>
-        <div id="wlLoss" style="font-size:1.6rem;font-weight:bold;color:#ff3344;line-height:1.1">0</div>
+        <div class="wl-lbl">LOSS</div>
+        <div class="wl-num r" id="wlLoss">0</div>
+      </div>
+      <div class="wl-bar">
+        <div style="font-size:.48rem;color:#007718">win rate</div>
+        <div class="wl-bar-track"><div class="wl-bar-fill" id="wlBar" style="width:0%"></div></div>
       </div>
     </div>
   </div>
+
   <div class="bpanel">
     <div class="ptitle" style="margin-bottom:4px">Resolvidos Recentes</div>
     <div id="resolvedEl"></div>
   </div>
+
   <div class="bpanel">
-    <div class="ptitle" style="margin-bottom:4px">Performance P&L</div>
-    <canvas id="miniChart" style="width:100%;height:55px"></canvas>
+    <div class="ptitle" style="margin-bottom:3px">Performance P&amp;L</div>
+    <canvas id="miniChart" style="width:100%;height:52px"></canvas>
   </div>
 </div>
 
 <script>
 'use strict';
 
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════════
 //  CLOCK
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════════
 function tick() {
   document.getElementById('clock').textContent =
-    new Date().toUTCString().slice(17,25) + ' UTC';
+    new Date().toUTCString().slice(17, 25) + ' UTC';
 }
 setInterval(tick, 1000); tick();
 
-// ═══════════════════════════════════════════════
-//  BOT STATE — começa vazio, preenchido pela API
-// ═══════════════════════════════════════════════
-let botState = null;
-let connected = false;
-
-async function pollAPI() {
-  try {
-    const r = await fetch('/api/state', { signal: AbortSignal.timeout(1500) });
-    if (!r.ok) throw new Error();
-    const data = await r.json();
-    if (data && data._ts) {
-      botState = data;
-      connected = true;
-      applyState(data);
-    }
-  } catch (_) {
-    connected = false;
-  }
-  updateConnUI();
+// ══════════════════════════════════════════
+//  LOG COLORING
+// ══════════════════════════════════════════
+function classifyLine(line) {
+  const u = line.toUpperCase();
+  if (/═{5,}|─{5,}/.test(line))                        return 'll-sep';
+  if (/\bERRO\b|\bERROR\b|\bFAIL(ED)?\b/i.test(line))  return 'll-err';
+  if (/\b(WON|WIN|GANHOU|ACERTOU)\b/i.test(line))       return 'll-win';
+  if (/\b(LOST|LOSS|PERDEU|ERROU)\b/i.test(line))       return 'll-loss';
+  if (/P\s*[&e]\s*L|LUCRO|PROFIT|PNL/i.test(line))      return 'll-pnl';
+  if (/ARBITR/i.test(line))                             return 'll-arb';
+  if (/APOSTA|BET|TRADE|COMPRA|VENDA/i.test(line))      return 'll-bet';
+  if (/BULL|BEAR|LONG|SHORT/i.test(line))               return 'll-signal';
+  if (/BTC|ETH|SOL|USDT|BINANCE|\$\d/i.test(line))      return 'll-price';
+  if (/SCAN|VARR|ANALIZ/i.test(line))                   return 'll-scan';
+  if (/INICIANDO|STARTED|CONECTADO|READY|OK/i.test(line)) return 'll-info';
+  return 'll-default';
 }
 
-function updateConnUI() {
-  const dot   = document.getElementById('liveDot');
-  const lbl   = document.getElementById('liveLabel');
-  const st    = document.getElementById('connStatus');
-  if (connected) {
-    dot.className = 'dot';
-    lbl.textContent = 'BOT CONECTADO · LIVE';
-    st.textContent = 'online'; st.className = 'conn-status ok';
-  } else {
-    dot.className = 'dot offline';
-    lbl.textContent = 'AGUARDANDO BOT…';
-    st.textContent = 'offline'; st.className = 'conn-status err';
+// ══════════════════════════════════════════
+//  STATE & POLLING
+// ══════════════════════════════════════════
+let lastTs   = 0;
+let lastLog  = [];
+let connected = false;
+
+const logScroll = document.getElementById('logScroll');
+
+function renderLog(lines) {
+  if (!Array.isArray(lines) || lines.length === 0) return;
+
+  // Detect new lines since last render
+  const prevLen   = lastLog.length;
+  const newLines  = lines.length > prevLen
+    ? lines.slice(prevLen)
+    : lines.length < prevLen
+      ? lines   // reset
+      : [];
+
+  if (newLines.length === 0 && lines.length === prevLen) return;
+
+  if (lines.length < prevLen) {
+    // Full reset
+    logScroll.innerHTML = '';
   }
+
+  // Append new lines (column-reverse: prepend)
+  newLines.forEach(raw => {
+    const div = document.createElement('div');
+    div.className = 'log-line new ' + classifyLine(raw);
+    div.textContent = raw;
+    logScroll.prepend(div);
+    // Remove 'new' class after animation
+    setTimeout(() => div.classList.remove('new'), 400);
+  });
+
+  // Trim to 300 DOM nodes
+  while (logScroll.children.length > 300) {
+    logScroll.removeChild(logScroll.lastChild);
+  }
+
+  lastLog = lines.slice();
+  document.getElementById('logCount').textContent = lines.length + ' linhas';
+
+  if (newLines.length > 0) {
+    const last = newLines[newLines.length - 1];
+    document.getElementById('cmdBadge').textContent = last.slice(0, 80);
+  }
+}
+
+// ── flash stat on change ──
+function flashEl(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('flash');
+  void el.offsetWidth;
+  el.classList.add('flash');
 }
 
 function applyState(d) {
   const pnl = d.pnl ?? 0;
-  const el = document.getElementById('sPnl');
-  el.textContent = (pnl >= 0 ? '+' : '') + '$' + Math.abs(pnl).toFixed(2);
-  el.className = 'val ' + (pnl >= 0 ? 'g' : 'r');
+  const pnlEl = document.getElementById('sPnl');
+  const oldPnl = pnlEl.textContent;
+  const newPnlText = (pnl >= 0 ? '+' : '') + '$' + Math.abs(pnl).toFixed(2);
+  if (oldPnl !== newPnlText) {
+    pnlEl.textContent = newPnlText;
+    pnlEl.className   = 'val ' + (pnl >= 0 ? 'g' : 'r');
+    flashEl('sPnl');
+  }
   document.getElementById('sPnlSub').textContent = d.session_label ?? 'sessão atual';
 
   const bal = d.balance ?? 0;
-  document.getElementById('sBalance').textContent = '$' + bal.toFixed(2);
+  const balEl = document.getElementById('sBalance');
+  const newBal = '$' + bal.toFixed(2);
+  if (balEl.textContent !== newBal) { balEl.textContent = newBal; flashEl('sBalance'); }
 
-  document.getElementById('sBets').textContent = d.active_bets ?? 0;
+  const bets = d.active_bets ?? 0;
+  const betsEl = document.getElementById('sBets');
+  if (betsEl.textContent !== String(bets)) { betsEl.textContent = bets; flashEl('sBets'); }
 
-  const wins = d.wins ?? 0, total = d.total_bets ?? 0;
-  const wr = total > 0 ? (wins / total * 100).toFixed(1) : '--';
+  const wins  = d.wins  ?? 0;
+  const total = d.total_bets ?? 0;
+  const wr    = total > 0 ? (wins / total * 100).toFixed(1) : '--';
   document.getElementById('sWinRate').textContent = wr + (total > 0 ? '%' : '');
-  document.getElementById('sWinSub').textContent = wins + ' / ' + total;
+  document.getElementById('sWinSub').textContent  = wins + ' / ' + total;
 
-  const sig = d.signal ?? 'SCANNING';
-  const sel = document.getElementById('sSignal');
-  sel.textContent = sig;
-  sel.className = 'val ' + (sig.includes('BULL')||sig.includes('LONG') ? 'g'
-                           : sig.includes('BEAR')||sig.includes('SHORT') ? 'r' : 'y');
-
-  // Log
-  if (Array.isArray(d.log)) {
-    const wrap = document.getElementById('logWrap');
-    wrap.innerHTML = '';
-    d.log.slice(-30).reverse().forEach(line => {
-      const div = document.createElement('div');
-      div.className = 'log-line' +
-        (line.includes('+') ? ' g' : line.includes('-$') || line.includes('erro') ? ' r'
-         : line.includes('Signal') || line.includes('Epoch') ? ' y' : '');
-      div.textContent = line;
-      wrap.appendChild(div);
-    });
+  const sig   = d.signal ?? 'SCANNING';
+  const sigEl = document.getElementById('sSignal');
+  if (sigEl.textContent !== sig) {
+    sigEl.textContent = sig;
+    sigEl.className   = 'val ' + (
+      /BULL|LONG/i.test(sig)  ? 'g' :
+      /BEAR|SHORT/i.test(sig) ? 'r' :
+      /ARB/i.test(sig)        ? 'or' : 'y'
+    );
+    flashEl('sSignal');
   }
 
+  // Log
+  renderLog(d.log ?? []);
+
   // Markets
-  if (Array.isArray(d.markets)) {
+  if (Array.isArray(d.markets) && d.markets.length > 0) {
     document.getElementById('marketsEl').innerHTML = d.markets.map(m => `
       <div class="mrow">
         <span class="mn">${m.name}</span>
-        <span class="mp ${m.price > 0.5 ? 'g':'r'}">${(m.price*100).toFixed(1)}¢</span>
+        <span class="mp ${(m.price??0) > 0.5 ? 'g':'r'}">${((m.price??0)*100).toFixed(1)}¢</span>
         <span class="${(m.change??0)>=0?'g':'r'}">${(m.change??0)>=0?'+':''}${(m.change??0).toFixed(1)}%</span>
       </div>`).join('');
   }
 
-  // Módulos do bot (via API quando disponível)
+  // Binance
+  const bin = d.binance ?? {};
+  const binKeys = Object.keys(bin);
+  if (binKeys.length > 0) {
+    document.getElementById('binanceEl').innerHTML = binKeys.map(sym => {
+      const t = bin[sym];
+      const chg = t.change ?? 0;
+      return `
+        <div class="tick-row">
+          <span class="tick-sym">${sym}</span>
+          <span class="tick-price ${chg>=0?'g':'r'}">$${Number(t.price||0).toLocaleString()}</span>
+          <span class="tick-chg ${chg>=0?'g':'r'}">${chg>=0?'+':''}${chg.toFixed(2)}%</span>
+        </div>`;
+    }).join('');
+  }
+
+  // Modules
   if (Array.isArray(d.modules)) renderModules(d.modules);
 
-  // (Binance feed removido — painel substituído por Win/Loss)
+  // Win/Loss
+  const wLoss = Math.max(0, total - wins);
+  document.getElementById('wlWins').textContent = wins;
+  document.getElementById('wlLoss').textContent = wLoss;
+  const wrPct = total > 0 ? (wins / total * 100) : 0;
+  document.getElementById('wlBar').style.width = wrPct.toFixed(1) + '%';
 
   // Resolved
   if (Array.isArray(d.resolved)) {
     document.getElementById('resolvedEl').innerHTML = d.resolved.slice(-4).map(r => `
-      <div class="ticker">
-        <span class="${r.pnl>=0?'g':'r'}" style="font-weight:bold">${r.pnl>=0?'+':''}$${Math.abs(r.pnl).toFixed(0)}</span>
-        <span class="sym" style="font-size:.57rem">${r.market}</span>
-        <span class="${r.outcome==='YES'?'g':'r'}">${r.outcome}</span>
+      <div class="res-row">
+        <span class="${(r.pnl??0)>=0?'g':'r'}" style="font-weight:bold">${(r.pnl??0)>=0?'+':''}$${Math.abs(r.pnl??0).toFixed(0)}</span>
+        <span style="color:#009920;font-size:.5rem;overflow:hidden;text-overflow:ellipsis;max-width:100px">${r.market??'—'}</span>
+        <span class="${r.outcome==='YES'?'g':'r'}">${r.outcome??'—'}</span>
       </div>`).join('');
   }
 
-  // Win / Loss panel
-  const wWins = d.wins ?? 0;
-  const wTotal = d.total_bets ?? 0;
-  const wLoss = wTotal - wWins;
-  const wRate = wTotal > 0 ? (wWins / wTotal * 100).toFixed(1) + '%' : '--%';
-  document.getElementById('wlWins').textContent = wWins;
-  document.getElementById('wlLoss').textContent = Math.max(0, wLoss);
-
   // PnL chart
   if (typeof d.pnl === 'number') pushChart(d.pnl);
+
+  // Last update
+  if (d._ts) {
+    const ago = Math.floor((Date.now()/1000) - d._ts);
+    document.getElementById('lastUpdate').textContent =
+      'atualizado há ' + (ago < 2 ? 'agora' : ago + 's');
+  }
 }
 
-setInterval(pollAPI, 2000); pollAPI();
-
-// ═══════════════════════════════════════════════
-//  MINI CHART
-// ═══════════════════════════════════════════════
-const pnlHistory = [0];
-function pushChart(v) {
-  pnlHistory.push(v);
-  if (pnlHistory.length > 80) pnlHistory.shift();
-  drawChart();
+function updateConnUI(ok) {
+  connected = ok;
+  document.getElementById('liveDot').className   = ok ? 'dot' : 'dot offline';
+  document.getElementById('liveLabel').textContent = ok ? 'BOT CONECTADO · LIVE' : 'AGUARDANDO BOT…';
+  const st = document.getElementById('connStatus');
+  st.textContent  = ok ? 'online' : 'offline';
+  st.className    = 'conn-status ' + (ok ? 'ok' : 'err');
 }
-const mc  = document.getElementById('miniChart');
-const mctx = mc.getContext('2d');
-function drawChart() {
-  mc.width  = mc.offsetWidth;
-  mc.height = mc.offsetHeight;
-  const W = mc.width, H = mc.height;
-  const min = Math.min(...pnlHistory), max = Math.max(...pnlHistory);
-  const range = max - min || 1;
-  mctx.clearRect(0,0,W,H);
-  const grad = mctx.createLinearGradient(0,0,0,H);
-  grad.addColorStop(0,'rgba(0,255,136,.35)');
-  grad.addColorStop(1,'rgba(0,255,136,0)');
-  mctx.beginPath();
-  pnlHistory.forEach((v,i) => {
-    const x = i/(pnlHistory.length-1)*W;
-    const y = H - (v-min)/range * H * .85 - 3;
-    i===0 ? mctx.moveTo(x,y) : mctx.lineTo(x,y);
-  });
-  mctx.strokeStyle = '#00ff88'; mctx.lineWidth = 1.5; mctx.stroke();
-  mctx.lineTo(W,H); mctx.lineTo(0,H); mctx.closePath();
-  mctx.fillStyle = grad; mctx.fill();
-}
-drawChart();
 
-// ═══════════════════════════════════════════════
-//  DEFAULT EMPTY MARKETS / CONF (mostrado offline)
-// ═══════════════════════════════════════════════
-document.getElementById('marketsEl').innerHTML = `
-  <div style="font-size:.6rem;color:#007718;padding:6px 0">
-    Conecte seu bot para ver mercados ao vivo
-  </div>`;
-// ── Módulos do Bot (estático até integração) ──
+async function pollAPI() {
+  try {
+    const r = await fetch('/api/state', { signal: AbortSignal.timeout(1200) });
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    if (d && d._ts && d._ts !== lastTs) {
+      lastTs = d._ts;
+      applyState(d);
+      updateConnUI(true);
+    } else if (d && !d._ts) {
+      updateConnUI(false);
+    }
+  } catch (_) {
+    updateConnUI(false);
+  }
+}
+
+// Poll a cada 500ms = quase tempo real
+setInterval(pollAPI, 500);
+pollAPI();
+
+// ══════════════════════════════════════════
+//  MÓDULOS
+// ══════════════════════════════════════════
 const MODULES_DEFAULT = [
-  {
-    name: 'Copy Trade',
-    status: 'Aguardando',
-    rows: [
-      ['Wallets', '0'],
-      ['Posições abertas', '0'],
-      ['Investido (aberto)', '$0.00'],
-      ['PnL realizado', '$0.00'],
-    ]
-  },
-  {
-    name: 'Bond Feed',
-    status: 'Aguardando',
-    rows: [
-      ['Compras', '0/0'],
-      ['Lucro potenc.', '$0.00'],
-    ]
-  },
-  {
-    name: 'Weather Feed',
-    status: 'Aguardando',
-    rows: [
-      ['Compras', '0/0'],
-      ['Lucro potenc.', '$0.00'],
-    ]
-  },
-  {
-    name: 'Crypto Up/Down 5 Min',
-    status: 'Aguardando',
-    rows: [
-      ['Moedas (Binance)', 'BTC ETH SOL XRP DOGE BNB'],
-      ['Trades', '0/0'],
-      ['BTC', '$0.00  0.000%'],
-      ['ETH', '$0.00  0.000%'],
-      ['SOL', '$0.00  0.000%'],
-      ['XRP', '$0.00  0.000%'],
-      ['DOGE', '$0.00  0.000%'],
-      ['BNB', '$0.00  0.000%'],
-    ]
-  },
+  { name:'Copy Trade',           status:'Aguardando', rows:[['Wallets','0'],['Posições abertas','0'],['Investido','$0.00'],['PnL realizado','$0.00']] },
+  { name:'Bond Feed',            status:'Aguardando', rows:[['Compras','0/0'],['Lucro potenc.','$0.00']] },
+  { name:'Weather Feed',         status:'Aguardando', rows:[['Compras','0/0'],['Lucro potenc.','$0.00']] },
+  { name:'Crypto Up/Down 5 Min', status:'Aguardando', rows:[['Moedas','BTC ETH SOL XRP DOGE BNB'],['Trades','0/0']] },
 ];
 
 function renderModules(mods) {
-  document.getElementById('modulesEl').innerHTML = mods.map(m => `
-    <div style="margin-bottom:7px;border-left:2px solid #00aa33;padding-left:6px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
-        <span style="font-size:.58rem;color:#00ff88;letter-spacing:.5px;font-weight:bold">${m.name}</span>
-        <span style="font-size:.5rem;color:#00cc44;border:1px solid #004400;padding:1px 4px">${m.status}</span>
-      </div>
-      ${m.rows.map(([k,v]) => `
-        <div style="display:flex;justify-content:space-between;font-size:.52rem;color:#007718;line-height:1.5">
-          <span>${k}</span><span style="color:#00cc44">${v}</span>
-        </div>`).join('')}
-    </div>`).join('');
+  document.getElementById('modulesEl').innerHTML = mods.map(m => {
+    const statusColor = /ativo|running|ok/i.test(m.status) ? '#00ff88'
+                      : /erro|fail/i.test(m.status)        ? '#ff4455'
+                      : '#00cc44';
+    return `
+      <div class="mod-block">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+          <span class="mod-name">${m.name}</span>
+          <span class="mod-status" style="color:${statusColor}">${m.status}</span>
+        </div>
+        ${(m.rows||[]).map(([k,v]) => `
+          <div class="mod-row"><span>${k}</span><span>${v}</span></div>`).join('')}
+      </div>`;
+  }).join('');
 }
 
 renderModules(MODULES_DEFAULT);
-// (binanceEl removido)
 
-// ═══════════════════════════════════════════════
-//  CANVAS BATTLE ANIMATION
-// ═══════════════════════════════════════════════
-const cv  = document.getElementById('cv');
-const ctx = cv.getContext('2d');
-const center = document.getElementById('centerDiv');
+// ══════════════════════════════════════════
+//  MINI CHART
+// ══════════════════════════════════════════
+const pnlHistory = [0];
+const mc   = document.getElementById('miniChart');
+const mctx = mc.getContext('2d');
 
-function resizeCanvas() {
-  cv.width  = center.clientWidth;
-  cv.height = center.clientHeight;
-}
-resizeCanvas();
-new ResizeObserver(resizeCanvas).observe(center);
-
-// ── Cube ──
-const cube = {
-  hitFlash: 0, shakeX: 0, shakeY: 0, totalHits: 0,
-  size: 38,
-  takeHit() {
-    this.hitFlash = 1;
-    this.shakeX = (Math.random()-.5)*14;
-    this.shakeY = (Math.random()-.5)*14;
-    this.totalHits++;
-    document.getElementById('hudL').textContent = 'Hits: ' + this.totalHits;
-  },
-  update() {
-    this.hitFlash = Math.max(0, this.hitFlash - .055);
-    this.shakeX  *= .65;
-    this.shakeY  *= .65;
-  }
-};
-
-function drawCube(cx, cy) {
-  const f = cube.hitFlash;
-  const x = cx + cube.shakeX, y = cy + cube.shakeY;
-  const s = cube.size;
-
-  // Isometric cube faces
-  // Top face (diamond)
-  const topPts = [
-    [x,        y - s*.55],
-    [x + s*.7, y - s*.18],
-    [x,        y + s*.18],
-    [x - s*.7, y - s*.18],
-  ];
-  // Left face
-  const leftPts = [
-    [x - s*.7, y - s*.18],
-    [x,        y + s*.18],
-    [x,        y + s*.75],
-    [x - s*.7, y + s*.4],
-  ];
-  // Right face
-  const rightPts = [
-    [x,        y + s*.18],
-    [x + s*.7, y - s*.18],
-    [x + s*.7, y + s*.4],
-    [x,        y + s*.75],
-  ];
-
-  const face = (pts, fill, stroke) => {
-    ctx.beginPath();
-    ctx.moveTo(pts[0][0], pts[0][1]);
-    pts.slice(1).forEach(p => ctx.lineTo(p[0], p[1]));
-    ctx.closePath();
-    ctx.fillStyle = fill; ctx.fill();
-    ctx.strokeStyle = stroke; ctx.lineWidth = 1.2; ctx.stroke();
-  };
-
-  if (f > 0.01) {
-    // HIT flash — white/red
-    const r = Math.floor(255);
-    const g = Math.floor(f * 80);
-    face(topPts,   `rgba(255,255,255,${f*.9})`,  '#ff4400');
-    face(leftPts,  `rgba(${r},${g},0,${.7+f*.3})`, '#ff2200');
-    face(rightPts, `rgba(${r},0,0,${.6+f*.3})`,  '#cc0000');
-    // Impact rings
-    for (let r2 = 32; r2 <= 90; r2 += 18) {
-      ctx.save();
-      ctx.globalAlpha = f * .3 * (1 - r2/100);
-      ctx.beginPath();
-      ctx.arc(x, y, r2 + (1-f)*25, 0, Math.PI*2);
-      ctx.strokeStyle = '#ff5500'; ctx.lineWidth = 2; ctx.stroke();
-      ctx.restore();
-    }
-  } else {
-    // Normal state — blue-teal
-    face(topPts,   '#003344', '#00ccff');
-    face(leftPts,  '#001e2e', '#0088bb');
-    face(rightPts, '#000f1a', '#005577');
-    // Glow edges only
-    ctx.save();
-    ctx.shadowColor = '#00ccff'; ctx.shadowBlur = 12;
-    face(topPts, 'transparent', '#00eeff');
-    ctx.restore();
-  }
-
-  // Label
-  ctx.save();
-  ctx.fillStyle = f > .1 ? `rgba(255,${Math.floor(f*120)},0,1)` : '#00aadd';
-  ctx.font = 'bold 10px Courier New';
-  ctx.textAlign = 'center';
-  ctx.shadowColor = f > .1 ? '#ff4400' : '#00aadd';
-  ctx.shadowBlur = 10;
-  ctx.fillText('POLYMARKET', x, y + s * 1.25);
-  ctx.restore();
+function pushChart(v) {
+  pnlHistory.push(v);
+  if (pnlHistory.length > 120) pnlHistory.shift();
+  drawChart();
 }
 
-// ── Agents ──
-const NUM_AGENTS = 100;
-const agents = [];
+function drawChart() {
+  mc.width  = mc.offsetWidth  * (window.devicePixelRatio || 1);
+  mc.height = mc.offsetHeight * (window.devicePixelRatio || 1);
+  mctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+  const W = mc.offsetWidth, H = mc.offsetHeight;
+  const min = Math.min(...pnlHistory), max = Math.max(...pnlHistory);
+  const range = max - min || 1;
+  mctx.clearRect(0, 0, W, H);
 
-class Agent {
-  constructor(id) {
-    this.id = id;
-    this.reset();
-    // Stagger shoot timers
-    this.shootTimer = Math.random() * 120;
+  // Zero line
+  if (min < 0 && max > 0) {
+    const zy = H - (0 - min) / range * H * .85 - 3;
+    mctx.beginPath();
+    mctx.strokeStyle = 'rgba(255,255,255,.1)';
+    mctx.lineWidth = 1;
+    mctx.moveTo(0, zy); mctx.lineTo(W, zy);
+    mctx.stroke();
   }
-  reset() {
-    // Spawn in left ~40% of canvas, distributed vertically
-    this.bx = cv.width * (.03 + Math.random() * .38);
-    this.by = cv.height * (.03 + Math.random() * .94);
-    this.x  = this.bx;
-    this.y  = this.by;
-    this.driftA  = Math.random() * Math.PI * 2;
-    this.driftR  = 4 + Math.random() * 12;
-    this.driftSpd= .008 + Math.random() * .012;
-    this.shootInt= 600 + Math.random() * 800; // frames between shots — muito menos lasers
-    this.size    = 1.5 + Math.random() * 2.5;
-    this.alpha   = .5 + Math.random() * .5;
-  }
-  update(lasers, cubeX, cubeY) {
-    this.driftA += this.driftSpd;
-    this.x = this.bx + Math.cos(this.driftA) * this.driftR;
-    this.y = this.by + Math.sin(this.driftA) * this.driftR;
-    this.shootTimer--;
-    if (this.shootTimer <= 0) {
-      lasers.push(new Laser(this.x, this.y, cubeX, cubeY));
-      this.shootTimer = this.shootInt;
-    }
-  }
-  draw() {
-    // Small triangle pointing right (toward cube)
-    const s = this.size;
-    ctx.save();
-    ctx.globalAlpha = this.alpha;
-    ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 6;
-    ctx.fillStyle = '#00ff88';
-    ctx.beginPath();
-    ctx.moveTo(this.x + s*2, this.y);
-    ctx.lineTo(this.x - s,   this.y - s);
-    ctx.lineTo(this.x - s,   this.y + s);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  }
-}
 
-// ── Lasers ──
-const lasers = [];
+  const lastPnl = pnlHistory[pnlHistory.length - 1];
+  const lineColor = lastPnl >= 0 ? '#00ff88' : '#ff4455';
+  const grad = mctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, lastPnl >= 0 ? 'rgba(0,255,136,.3)' : 'rgba(255,68,85,.3)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
 
-class Laser {
-  constructor(sx, sy, tx, ty) {
-    this.sx = sx; this.sy = sy;
-    this.tx = tx; this.ty = ty;
-    this.t  = 0;
-    this.spd = .0018 + Math.random() * .0012; // lentíssimo
-    this.w   = .8 + Math.random() * 1.5;
-    this.hit = false;
-    // Bezier curve control point — perpendicular offset for curved path
-    const mx = (sx + tx) / 2;
-    const my = (sy + ty) / 2;
-    const dx = tx - sx, dy = ty - sy;
-    const len = Math.sqrt(dx*dx + dy*dy) || 1;
-    const curv = (Math.random() - 0.5) * len * 0.35;
-    this.cpx = mx - (dy / len) * curv;
-    this.cpy = my + (dx / len) * curv;
-  }
-  bezierPt(t) {
-    const mt = 1 - t;
-    return {
-      x: mt*mt*this.sx + 2*mt*t*this.cpx + t*t*this.tx,
-      y: mt*mt*this.sy + 2*mt*t*this.cpy + t*t*this.ty
-    };
-  }
-  update() {
-    this.t += this.spd;
-    if (this.t >= 1 && !this.hit) {
-      this.hit = true;
-      cube.takeHit();
-    }
-    return this.t < 1.5;
-  }
-  draw() {
-    const p = Math.min(this.t, 1);
-    const head = this.bezierPt(p);
-    const tp = Math.max(0, p - .12);
-    const fade = Math.max(0, 1 - Math.max(0, this.t - 1) * 5);
-
-    ctx.save();
-    ctx.globalAlpha = fade;
-    // Curved beam — draw as segmented bezier trail
-    ctx.beginPath();
-    const steps = 10;
-    for (let i = 0; i <= steps; i++) {
-      const ti = tp + (p - tp) * i / steps;
-      const pt = this.bezierPt(ti);
-      i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
-    }
-    ctx.strokeStyle = '#ff1100';
-    ctx.lineWidth = this.w;
-    ctx.shadowColor = '#ff3300'; ctx.shadowBlur = 8;
-    ctx.stroke();
-    // Bright head
-    ctx.beginPath();
-    ctx.arc(head.x, head.y, this.w * 2, 0, Math.PI*2);
-    ctx.fillStyle = '#ff8866'; ctx.shadowBlur = 12; ctx.fill();
-    ctx.restore();
-  }
-}
-
-// Build agents once canvas is sized
-for (let i = 0; i < NUM_AGENTS; i++) agents.push(new Agent(i));
-
-// ── Render loop — 140 Hz target ──
-const TARGET_FPS = 140;
-const FRAME_MS   = 1000 / TARGET_FPS;
-let frame = 0;
-let lastTime = 0;
-
-function render(now = 0) {
-  requestAnimationFrame(render);
-  const delta = now - lastTime;
-  if (delta < FRAME_MS - 0.5) return; // skip frame if too early
-  lastTime = now - (delta % FRAME_MS); // carry over remainder for smoothness
-  const W = cv.width, H = cv.height;
-  const cubeX = W * .78, cubeY = H * .5;
-
-  // Fade trail
-  ctx.fillStyle = 'rgba(0,0,0,.22)';
-  ctx.fillRect(0,0,W,H);
-
-  // Subtle ambient glow around cube
-  const aGrad = ctx.createRadialGradient(cubeX,cubeY,10,cubeX,cubeY,W*.22);
-  aGrad.addColorStop(0, cube.hitFlash > .1 ? 'rgba(255,80,0,.05)' : 'rgba(0,40,0,.04)');
-  aGrad.addColorStop(1,'transparent');
-  ctx.fillStyle = aGrad;
-  ctx.fillRect(0,0,W,H);
-
-  // Update cube
-  cube.update();
-
-  // Update & draw agents
-  let active = 0;
-  agents.forEach(a => {
-    // Reposition base if canvas resized
-    if (a.bx > W * .45) a.reset();
-    a.update(lasers, cubeX, cubeY);
-    a.draw();
-    active++;
+  mctx.beginPath();
+  pnlHistory.forEach((v, i) => {
+    const x = i / (pnlHistory.length - 1) * W;
+    const y = H - (v - min) / range * H * .85 - 3;
+    i === 0 ? mctx.moveTo(x, y) : mctx.lineTo(x, y);
   });
-
-  // Update & draw lasers
-  for (let i = lasers.length - 1; i >= 0; i--) {
-    const alive = lasers[i].update();
-    if (alive) lasers[i].draw(); else lasers.splice(i,1);
-  }
-
-  // Draw cube on top
-  drawCube(cubeX, cubeY);
-
-  // HUD
-  if (frame % 30 === 0) {
-    document.getElementById('hudR').textContent = `Agentes: ${active} · Lasers: ${lasers.length}`;
-    document.getElementById('cvSub').textContent =
-      connected ? `${active} agentes atacando · ${cube.totalHits} hits` : '';
-  }
-
-  frame++;
+  mctx.strokeStyle = lineColor;
+  mctx.lineWidth   = 1.5;
+  mctx.shadowColor = lineColor;
+  mctx.shadowBlur  = 5;
+  mctx.stroke();
+  mctx.shadowBlur  = 0;
+  mctx.lineTo(W, H); mctx.lineTo(0, H);
+  mctx.closePath();
+  mctx.fillStyle = grad;
+  mctx.fill();
 }
 
-// Wait for layout then start
-requestAnimationFrame(() => {
-  resizeCanvas();
-  agents.forEach(a => a.reset());
-  requestAnimationFrame(render);
-});
+drawChart();
+window.addEventListener('resize', drawChart);
 </script>
 </body>
 </html>
