@@ -25,7 +25,7 @@ DASH_DIR = os.path.dirname(os.path.abspath(__file__))
 # Caminho do bot — por padrão, diretório pai desta pasta.
 # Altere para o caminho completo se necessário, ex:
 #   BOT_DIR = r"C:\Users\Biel\polynovointegrardashboard"
-BOT_DIR  = os.path.dirname(DASH_DIR)
+BOT_DIR  = r"C:\Users\biel\Desktop\PolyBot NEW"
 
 BOT_CMD  = ['npm', 'start']   # comando que inicia o bot
 # ══════════════════════════════════════════════════════════════
