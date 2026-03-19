@@ -6,18 +6,17 @@
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 :root {
-  --bg:      #010810;
-  --panel:   #020d1a;
-  --border:  rgba(0,255,100,0.12);
-  --cyan:    #00ff88;
-  --green:   #00ff88;
+  --bg:      #000000;
+  --panel:   #060606;
+  --border:  rgba(0,255,70,0.18);
+  --green:   #00ff41;
+  --green2:  #39ff14;
   --red:     #ff3344;
-  --yellow:  #00ff44;
-  --dim:     #1a6a3a;
+  --dim:     #1a7a35;
 }
 body {
   background: var(--bg);
-  color: #00ee66;
+  color: #00ff41;
   font-family: 'Courier New', monospace;
   display: flex;
   flex-direction: column;
@@ -32,23 +31,24 @@ body {
   align-items: center;
   padding: 8px 20px;
   border-bottom: 1px solid var(--border);
-  background: #010c17;
+  background: #020202;
   flex-shrink: 0;
 }
-.brand { color: #00ff88; font-size: 1rem; font-weight: bold; letter-spacing: 3px; }
+.brand { color: var(--green2); font-size: 1rem; font-weight: bold; letter-spacing: 3px;
+         text-shadow: 0 0 10px var(--green2); }
 .live-badge {
   display: inline-flex; align-items: center; gap: 5px;
-  font-size: 0.6rem; color: #00cc55;
+  font-size: 0.6rem; color: #00cc30;
   margin-left: 80px;
 }
 .dot { width:7px; height:7px; border-radius:50%; background:var(--green);
        box-shadow:0 0 8px var(--green); animation:blink 1.2s infinite; }
-.dot.offline { background:#555; box-shadow:none; animation:none; }
+.dot.offline { background:#333; box-shadow:none; animation:none; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
 .conn-status { font-size:0.58rem; }
 .conn-status.ok  { color:var(--green); }
 .conn-status.err { color:var(--red); }
-.clock { font-size:0.65rem; color:#00aa44; text-align:right; }
+.clock { font-size:0.65rem; color:#009920; text-align:right; }
 
 /* ── STATS ── */
 .stats-row {
@@ -60,14 +60,16 @@ body {
 .stat {
   padding: 10px 16px;
   border-right: 1px solid var(--border);
-  background: var(--panel);
+  background: #040404;
 }
 .stat:last-child { border-right: none; }
-.stat .lbl { font-size:0.55rem; color:#00aa44; text-transform:uppercase; letter-spacing:1px; }
+.stat .lbl { font-size:0.55rem; color:#007718; text-transform:uppercase; letter-spacing:1px; }
 .stat .val { font-size:1.4rem; font-weight:bold; margin-top:2px; }
-.stat .sub { font-size:0.55rem; color:#00aa44; margin-top:2px; }
-.g { color:var(--green); } .r { color:var(--red); }
-.c { color:var(--cyan); }  .y { color:var(--yellow); }
+.stat .sub { font-size:0.55rem; color:#007718; margin-top:2px; }
+.g { color:var(--green); text-shadow: 0 0 6px var(--green); }
+.r { color:var(--red); }
+.c { color:var(--green2); }
+.y { color:#00ee30; }
 
 /* ── MAIN ── */
 .main {
@@ -78,7 +80,7 @@ body {
   border-bottom: 1px solid var(--border);
 }
 .side {
-  background: var(--panel);
+  background: #030303;
   border-right: 1px solid var(--border);
   padding: 10px;
   display: flex;
@@ -88,42 +90,44 @@ body {
 }
 .side:last-child { border-right:none; border-left:1px solid var(--border); }
 .ptitle {
-  font-size:0.55rem; color:#00ff88;
+  font-size:0.55rem; color:var(--green);
   text-transform:uppercase; letter-spacing:2px;
   border-bottom:1px solid var(--border); padding-bottom:5px;
+  text-shadow: 0 0 8px var(--green);
 }
 
 /* log */
 .log-wrap { overflow:hidden; flex:1; display:flex; flex-direction:column-reverse; }
-.log-line { font-size:0.6rem; padding:2px 0 2px 6px; border-left:2px solid #0f83; color:#00cc55; line-height:1.4; }
-.log-line.g { color:var(--green); border-left-color:#0f84; }
-.log-line.r { color:var(--red);   border-left-color:#f444; }
-.log-line.y { color:var(--yellow);border-left-color:#ff04; }
+.log-line { font-size:0.6rem; padding:2px 0 2px 6px; border-left:2px solid #00ff4144; color:#00bb30; line-height:1.4; }
+.log-line.g { color:var(--green); border-left-color:#00ff4166; }
+.log-line.r { color:var(--red);   border-left-color:#ff334455; }
+.log-line.y { color:#00ee30;      border-left-color:#00ee3055; }
 
 /* market rows */
 .mrow { display:flex; justify-content:space-between; font-size:0.62rem;
         padding:3px 0; border-bottom:1px solid var(--border); }
-.mrow .mn { color:#00cc55; } .mrow .mp { font-weight:bold; }
+.mrow .mn { color:#00bb30; } .mrow .mp { font-weight:bold; }
 
 /* conf bars */
 .cbar-wrap { margin:3px 0; }
-.cbar-lbl { font-size:0.58rem; color:#00aa44; display:flex; justify-content:space-between; margin-bottom:2px; }
-.cbar { height:3px; background:#0ff1; border-radius:2px; overflow:hidden; }
+.cbar-lbl { font-size:0.58rem; color:#009920; display:flex; justify-content:space-between; margin-bottom:2px; }
+.cbar { height:3px; background:#00ff4115; border-radius:2px; overflow:hidden; }
 .cbar-fill { height:100%; border-radius:2px; }
 
 /* ── CENTER ── */
-.center { background:#010810; position:relative; overflow:hidden; }
+.center { background:#000000; position:relative; overflow:hidden; }
 #cv { display:block; }
 .cv-top {
   position:absolute; top:10px; left:0; right:0;
   text-align:center; pointer-events:none;
 }
-.cv-top .t1 { font-size:0.58rem; color:rgba(0,255,100,.7); letter-spacing:3px; text-transform:uppercase; }
-.cv-top .t2 { font-size:0.52rem; color:rgba(0,200,80,.5); }
+.cv-top .t1 { font-size:0.58rem; color:rgba(0,255,65,.8); letter-spacing:3px; text-transform:uppercase;
+              text-shadow: 0 0 12px #00ff41; }
+.cv-top .t2 { font-size:0.52rem; color:rgba(0,200,50,.5); }
 .cv-bot {
   position:absolute; bottom:6px; left:10px; right:10px;
   display:flex; justify-content:space-between;
-  font-size:0.55rem; color:rgba(0,255,100,.4); pointer-events:none;
+  font-size:0.55rem; color:rgba(0,255,65,.45); pointer-events:none;
 }
 .demo-badge {
   position:absolute; top:10px; right:10px;
@@ -140,7 +144,7 @@ body {
   border-top: 1px solid var(--border);
 }
 .bpanel {
-  background:var(--panel);
+  background:#030303;
   padding:8px 12px;
   border-right:1px solid var(--border);
   overflow:hidden;
@@ -148,7 +152,7 @@ body {
 .bpanel:last-child { border-right:none; }
 .ticker { display:flex; justify-content:space-between; font-size:0.6rem;
           padding:2px 0; border-bottom:1px solid var(--border); }
-.ticker .sym { color:#00cc55; }
+.ticker .sym { color:#00bb30; }
 </style>
 </head>
 <body>
@@ -166,7 +170,7 @@ body {
   </div>
   <div>
     <div class="clock" id="clock"></div>
-    <div style="font-size:.55rem;color:#00aa44;text-align:right">POST /api/update para conectar</div>
+    <div style="font-size:.55rem;color:#007718;text-align:right">POST /api/update para conectar</div>
   </div>
 </div>
 
@@ -419,11 +423,11 @@ drawChart();
 //  DEFAULT EMPTY MARKETS / CONF (mostrado offline)
 // ═══════════════════════════════════════════════
 document.getElementById('marketsEl').innerHTML = `
-  <div style="font-size:.6rem;color:var(--dim);padding:6px 0">
+  <div style="font-size:.6rem;color:#007718;padding:6px 0">
     Conecte seu bot para ver mercados ao vivo
   </div>`;
 document.getElementById('confEl').innerHTML = `
-  <div style="font-size:.6rem;color:var(--dim)">
+  <div style="font-size:.6rem;color:#007718">
     Aguardando dados do modelo…
   </div>`;
 document.getElementById('binanceEl').innerHTML = `
@@ -670,12 +674,12 @@ function render(now = 0) {
   const cubeX = W * .78, cubeY = H * .5;
 
   // Fade trail
-  ctx.fillStyle = 'rgba(1,8,16,.2)';
+  ctx.fillStyle = 'rgba(0,0,0,.22)';
   ctx.fillRect(0,0,W,H);
 
   // Subtle ambient glow around cube
   const aGrad = ctx.createRadialGradient(cubeX,cubeY,10,cubeX,cubeY,W*.22);
-  aGrad.addColorStop(0, cube.hitFlash > .1 ? 'rgba(255,80,0,.04)' : 'rgba(0,120,200,.02)');
+  aGrad.addColorStop(0, cube.hitFlash > .1 ? 'rgba(255,80,0,.05)' : 'rgba(0,40,0,.04)');
   aGrad.addColorStop(1,'transparent');
   ctx.fillStyle = aGrad;
   ctx.fillRect(0,0,W,H);
