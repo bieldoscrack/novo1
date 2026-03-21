@@ -1,6 +1,6 @@
 """
-CLOB orderbook client — WebSocket with REST API fallback.
-Tries WS connection; if unavailable, polls REST API for orderbook data.
+CLOB orderbook client — REST API polling with optional WebSocket supplement.
+Always polls REST for reliable book data; WS provides faster updates when available.
 """
 from __future__ import annotations
 import asyncio
@@ -13,18 +13,16 @@ from loguru import logger
 from config import settings
 from core.state_manager import bot_state
 
-# URLs to try for WebSocket connection (in order)
 WS_URLS = [
     "wss://ws-subscriptions-clob.polymarket.com/ws/market",
     "wss://ws-subscriptions-clob.polymarket.com/ws/",
-    "wss://ws-subscriptions-clob.polymarket.com",
 ]
 
 
 class OrderbookSnapshot:
     def __init__(self, token_id: str) -> None:
         self.token_id = token_id
-        self.bids: List[Dict[str, float]] = []  # [{"price": x, "size": y}]
+        self.bids: List[Dict[str, float]] = []
         self.asks: List[Dict[str, float]] = []
         self.last_update: float = 0.0
 
@@ -48,12 +46,9 @@ class ClobOrderbookWS:
         self._running: bool = False
         self._ws: Optional[Any] = None
         self._on_update_cb: Optional[Callable[[str, OrderbookSnapshot], None]] = None
-        self._rest_client = rest_client  # PolymarketClient for REST fallback
-        self._ws_connected: bool = False
+        self._rest_client = rest_client
 
-    def on_update(
-        self, cb: Callable[[str, OrderbookSnapshot], None]
-    ) -> None:
+    def on_update(self, cb: Callable[[str, OrderbookSnapshot], None]) -> None:
         self._on_update_cb = cb
 
     def subscribe(self, token_id: str) -> None:
@@ -66,77 +61,86 @@ class ClobOrderbookWS:
         return self._books.get(token_id)
 
     async def run(self) -> None:
+        """Run REST polling (primary) + WS (optional supplement)."""
         self._running = True
-        # Try WS first, fall back to REST polling
-        ws_failed = await self._try_ws_connect()
-        if ws_failed:
-            bot_state.add_log("CLOB WS indisponível — usando REST API para orderbook")
-            logger.info("CLOB WS unavailable, falling back to REST polling")
-            await self._run_rest_polling()
 
-    async def _try_ws_connect(self) -> bool:
-        """Try each WS URL. Returns True if all failed."""
+        # Start WS in background (best-effort, non-blocking)
+        ws_task = asyncio.create_task(self._ws_loop(), name="clob-ws-bg")
+
+        # REST polling is the primary data source
+        await self._run_rest_polling()
+
+        ws_task.cancel()
+        try:
+            await ws_task
+        except asyncio.CancelledError:
+            pass
+
+    async def _ws_loop(self) -> None:
+        """Background WS connection for real-time updates."""
         import websockets
+
+        await asyncio.sleep(2)  # Let REST poll first
 
         for url in WS_URLS:
             if not self._running:
-                return True
+                return
             try:
-                logger.debug(f"Tentando CLOB WS: {url}")
                 async with websockets.connect(
                     url, ping_interval=20, open_timeout=10,
                     additional_headers={"Origin": "https://polymarket.com"},
                 ) as ws:
                     self._ws = ws
-                    self._ws_connected = True
-                    bot_state.add_log(f"CLOB WS conectado ✓")
+                    bot_state.add_log("CLOB WS conectado ✓ (suplementar)")
                     logger.info(f"CLOB WS connected: {url}")
 
-                    # Subscribe to known markets
                     subs = list(self._subscriptions)
                     if subs:
-                        msg = json.dumps({"assets_ids": subs, "type": "market"})
-                        await ws.send(msg)
+                        await ws.send(json.dumps({"assets_ids": subs, "type": "market"}))
 
-                    # Stay in WS loop
-                    backoff = 2
-                    while self._running:
-                        try:
-                            async for raw in ws:
-                                if not self._running:
-                                    return False
-                                await self._handle(raw)
-                        except asyncio.CancelledError:
-                            return False
-                        except Exception as e:
-                            logger.warning(f"CLOB WS erro: {e}. Reconectando em {backoff}s")
-                            await asyncio.sleep(backoff)
-                            backoff = min(backoff * 2, 60)
-                    return False
+                    async for raw in ws:
+                        if not self._running:
+                            return
+                        await self._handle(raw)
             except asyncio.CancelledError:
-                return False
+                return
             except Exception as e:
-                logger.warning(f"CLOB WS {url} falhou: {e}")
+                logger.debug(f"CLOB WS {url}: {e}")
                 continue
 
-        return True  # All URLs failed
-
     async def _run_rest_polling(self) -> None:
-        """Fallback: poll REST API for orderbook data every 5 seconds."""
+        """Poll REST API for orderbook data every 5 seconds."""
         if not self._rest_client:
-            bot_state.add_log("WARN: REST fallback sem client — orderbook indisponível")
-            # Just idle so we don't crash
+            bot_state.add_log("WARN: Sem client REST — orderbook indisponível")
             while self._running:
                 await asyncio.sleep(30)
             return
 
         bot_state.add_log("Orderbook REST polling ativo ✓")
+        poll_count = 0
+
         while self._running:
             try:
-                for tid in list(self._subscriptions):
+                subs = list(self._subscriptions)
+                updated = 0
+                for tid in subs:
                     if not self._running:
                         break
-                    await self._poll_rest_book(tid)
+                    # Skip if WS already gave us fresh data (< 10s old)
+                    existing = self._books.get(tid)
+                    if existing and (time.time() - existing.last_update) < 10:
+                        updated += 1
+                        continue
+                    ok = await self._poll_rest_book(tid)
+                    if ok:
+                        updated += 1
+
+                poll_count += 1
+                if poll_count % 12 == 1:  # Log every ~60s
+                    bot_state.add_log(
+                        f"Orderbook: {updated}/{len(subs)} tokens com dados"
+                    )
+
                 await asyncio.sleep(5)
             except asyncio.CancelledError:
                 break
@@ -144,41 +148,48 @@ class ClobOrderbookWS:
                 logger.warning(f"REST orderbook poll erro: {e}")
                 await asyncio.sleep(10)
 
-    async def _poll_rest_book(self, token_id: str) -> None:
+    async def _poll_rest_book(self, token_id: str) -> bool:
         """Fetch orderbook via REST API and update snapshot."""
         book_data = await self._rest_client.get_orderbook(token_id)
         if not book_data:
-            return
+            return False
 
         if token_id not in self._books:
             self._books[token_id] = OrderbookSnapshot(token_id)
 
         book = self._books[token_id]
-        book.last_update = time.time()
 
-        # Handle both dict and OrderBookSummary object from py-clob-client
-        bids_raw = getattr(book_data, "bids", None) or (
-            book_data.get("bids", []) if isinstance(book_data, dict) else []
-        )
-        asks_raw = getattr(book_data, "asks", None) or (
-            book_data.get("asks", []) if isinstance(book_data, dict) else []
-        )
+        # Handle both dict and OrderBookSummary object
+        bids_raw = getattr(book_data, "bids", None)
+        if bids_raw is None and isinstance(book_data, dict):
+            bids_raw = book_data.get("bids", [])
+        asks_raw = getattr(book_data, "asks", None)
+        if asks_raw is None and isinstance(book_data, dict):
+            asks_raw = book_data.get("asks", [])
+
+        if not bids_raw and not asks_raw:
+            return False
+
+        parsed_bids = [self._parse_level(b) for b in (bids_raw or [])]
+        parsed_asks = [self._parse_level(a) for a in (asks_raw or [])]
 
         book.bids = sorted(
-            [self._parse_level(b) for b in bids_raw if self._parse_level(b)],
+            [b for b in parsed_bids if b],
             key=lambda x: -x["price"],
         )
         book.asks = sorted(
-            [self._parse_level(a) for a in asks_raw if self._parse_level(a)],
+            [a for a in parsed_asks if a],
             key=lambda x: x["price"],
         )
+        book.last_update = time.time()
 
         if self._on_update_cb:
             self._on_update_cb(token_id, book)
 
+        return bool(book.bids or book.asks)
+
     @staticmethod
     def _parse_level(level: Any) -> Optional[Dict[str, float]]:
-        """Parse a bid/ask level from dict or object."""
         try:
             if isinstance(level, dict):
                 return {"price": float(level["price"]), "size": float(level["size"])}
@@ -186,15 +197,12 @@ class ClobOrderbookWS:
         except (KeyError, AttributeError, ValueError, TypeError):
             return None
 
-    async def _send_subscribe(self, ws: Any, token_id: str) -> None:
-        msg = json.dumps({"assets_ids": [token_id], "type": "market"})
-        await ws.send(msg)
-
     async def add_subscription(self, token_id: str) -> None:
         self._subscriptions.add(token_id)
-        if self._ws and self._ws_connected:
+        if self._ws:
             try:
-                await self._send_subscribe(self._ws, token_id)
+                msg = json.dumps({"assets_ids": [token_id], "type": "market"})
+                await self._ws.send(msg)
             except Exception:
                 pass
 
@@ -204,7 +212,6 @@ class ClobOrderbookWS:
         except json.JSONDecodeError:
             return
 
-        # WS can return a list of messages or a single message
         messages = data if isinstance(data, list) else [data]
         for msg in messages:
             if not isinstance(msg, dict):
