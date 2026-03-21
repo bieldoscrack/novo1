@@ -28,6 +28,7 @@ from core.risk_manager import RiskManager
 from core.state_manager import bot_state
 from server import app
 from strategies.copy_trading import CopyTradingStrategy
+from strategies.ice_fishing import IceFishingStrategy
 from strategies.pair_trading import PairTradingStrategy
 from utils.allowance_checker import check_allowances
 from utils.telegram_alerts import TelegramAlerter
@@ -60,6 +61,7 @@ async def run_bot(
     """Core bot loop — runs all strategies concurrently."""
     pair_strategy = PairTradingStrategy(binance, ob_ws, discovery, executor, risk)
     copy_strategy = CopyTradingStrategy(client, executor, risk)
+    ice_fishing_strategy = IceFishingStrategy(client, executor, risk)
 
     # Daily P&L alert at midnight UTC
     async def daily_alert_loop() -> None:
@@ -81,6 +83,7 @@ async def run_bot(
         asyncio.create_task(discovery.run(), name="market-discovery"),
         asyncio.create_task(pair_strategy.run(), name="pair-trading"),
         asyncio.create_task(copy_strategy.run(), name="copy-trading"),
+        asyncio.create_task(ice_fishing_strategy.run(), name="ice-fishing"),
         asyncio.create_task(daily_alert_loop(), name="daily-alert"),
     ]
 

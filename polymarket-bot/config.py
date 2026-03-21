@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     stop_loss_daily_pct: float = 0.05
     stop_loss_pause_hours: int = 6
 
+    # Ice Fishing
+    ice_fishing_enabled: bool = True
+    ice_fishing_max_holes: int = 10
+    ice_fishing_max_entry_price: float = 0.15
+    ice_fishing_order_ttl: int = 7200
+
     # Copy wallets
     copy_wallets: str = ""
 

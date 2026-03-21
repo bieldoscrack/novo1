@@ -32,6 +32,14 @@ class BotState:
             "copy_trades": [],
             "positions": [],
             "binance_prices": {"BTC": 0.0, "ETH": 0.0, "SOL": 0.0},
+            "ice_fishing": {
+                "active_holes": 0,
+                "max_holes": 10,
+                "fish_caught": 0,
+                "holes_drilled": 0,
+                "holes_expired": 0,
+                "holes": [],
+            },
         }
         self._start_time: float = time.time()
         self._session_number: int = 1
