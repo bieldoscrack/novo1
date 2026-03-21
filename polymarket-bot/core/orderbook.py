@@ -68,9 +68,11 @@ class ClobOrderbookWS:
                     self._ws = ws
                     bot_state.add_log("CLOB WS conectado ✓")
                     backoff = 2
-                    # Subscribe to known markets
-                    for tid in list(self._subscriptions):
-                        await self._send_subscribe(ws, tid)
+                    # Subscribe to known markets (batch)
+                    subs = list(self._subscriptions)
+                    if subs:
+                        msg = json.dumps({"assets_ids": subs, "type": "market"})
+                        await ws.send(msg)
                     async for raw in ws:
                         if not self._running:
                             break
@@ -85,7 +87,7 @@ class ClobOrderbookWS:
                 backoff = min(backoff * 2, 60)
 
     async def _send_subscribe(self, ws: Any, token_id: str) -> None:
-        msg = json.dumps({"type": "subscribe", "market": token_id, "channel": "market"})
+        msg = json.dumps({"assets_ids": [token_id], "type": "market"})
         await ws.send(msg)
 
     async def add_subscription(self, token_id: str) -> None:

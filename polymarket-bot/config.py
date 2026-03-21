@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     clob_api_url: str = "https://clob.polymarket.com"
     gamma_api_url: str = "https://gamma-api.polymarket.com"
     data_api_url: str = "https://data-api.polymarket.com"
-    clob_ws_url: str = "wss://ws-subscriptions-clob.polymarket.com/ws/"
+    clob_ws_url: str = "wss://ws-subscriptions-clob.polymarket.com/ws/market"
     chain_id: int = 137
 
     # Binance

@@ -105,10 +105,14 @@ class CopyTradingStrategy(BaseStrategy):
         book = await self._client.get_orderbook(token_id)
         current_price = original_price
         if book:
-            bids = book.get("bids", [])
-            asks = book.get("asks", [])
+            # py-clob-client returns OrderBookSummary object, not dict
+            asks = getattr(book, "asks", None) or []
             if asks:
-                current_price = float(asks[0].get("price", original_price))
+                first_ask = asks[0]
+                if isinstance(first_ask, dict):
+                    current_price = float(first_ask.get("price", original_price))
+                else:
+                    current_price = float(getattr(first_ask, "price", original_price))
 
         # Don't copy if price moved > 3%
         if abs(current_price - original_price) / max(original_price, 0.01) > MAX_PRICE_MOVE:
