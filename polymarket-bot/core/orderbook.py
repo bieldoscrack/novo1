@@ -200,10 +200,18 @@ class ClobOrderbookWS:
 
     async def _handle(self, raw: str) -> None:
         try:
-            msg = json.loads(raw)
+            data = json.loads(raw)
         except json.JSONDecodeError:
             return
 
+        # WS can return a list of messages or a single message
+        messages = data if isinstance(data, list) else [data]
+        for msg in messages:
+            if not isinstance(msg, dict):
+                continue
+            self._handle_msg(msg)
+
+    def _handle_msg(self, msg: Dict[str, Any]) -> None:
         event_type = msg.get("event_type", msg.get("type", ""))
         asset_id = msg.get("asset_id", msg.get("market", ""))
 

@@ -24,7 +24,7 @@ html,body{
   background:var(--bg);
   color:var(--green);
   font-family:'Courier New',Courier,monospace;
-  font-size:12px;
+  font-size:16px;
 }
 
 /* ── TOPBAR ── */
@@ -36,13 +36,13 @@ html,body{
   flex-shrink:0;
 }
 #brand{
-  font-size:0.8rem;font-weight:bold;letter-spacing:3px;
+  font-size:1.1rem;font-weight:bold;letter-spacing:3px;
   color:var(--green2);
   text-shadow:0 0 8px var(--green2),0 0 20px rgba(57,255,20,0.4);
 }
 #live-badge{
   display:flex;align-items:center;gap:6px;
-  font-size:0.55rem;letter-spacing:2px;color:var(--dim);
+  font-size:0.75rem;letter-spacing:2px;color:var(--dim);
 }
 #live-dot{
   width:7px;height:7px;border-radius:50%;
@@ -52,7 +52,7 @@ html,body{
 }
 #live-dot.offline{background:var(--red);box-shadow:0 0 6px var(--red);animation:none}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
-#clock{font-size:0.6rem;color:var(--dim);letter-spacing:1px}
+#clock{font-size:0.8rem;color:var(--dim);letter-spacing:1px}
 
 /* ── STATS ROW ── */
 #stats-row{
@@ -67,12 +67,12 @@ html,body{
   background:var(--panel2);
 }
 .stat-cell:last-child{border-right:none}
-.stat-label{font-size:0.55rem;color:var(--label);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
-.stat-value{font-size:1.35rem;font-weight:bold;color:var(--green);text-shadow:0 0 8px var(--green)}
+.stat-label{font-size:0.75rem;color:var(--label);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
+.stat-value{font-size:1.6rem;font-weight:bold;color:var(--green);text-shadow:0 0 8px var(--green)}
 .stat-value.pos{color:var(--green2);text-shadow:0 0 8px var(--green2)}
 .stat-value.neg{color:var(--red);text-shadow:0 0 6px var(--red)}
 .stat-value.neutral{color:var(--yellow);text-shadow:0 0 6px var(--yellow)}
-.stat-sub{font-size:0.5rem;color:var(--dim);margin-top:2px}
+.stat-sub{font-size:0.7rem;color:var(--dim);margin-top:2px}
 
 /* ── MAIN AREA ── */
 #main-area{
@@ -84,14 +84,14 @@ html,body{
 
 /* ── LOG PANEL ── */
 #log-panel{
-  width:220px;flex-shrink:0;
+  width:280px;flex-shrink:0;
   display:flex;flex-direction:column;
   border-right:1px solid var(--border);
   background:var(--panel2);
   overflow:hidden;
 }
 #log-title{
-  font-size:0.5rem;letter-spacing:3px;color:var(--label);
+  font-size:0.7rem;letter-spacing:3px;color:var(--label);
   padding:5px 8px;border-bottom:1px solid var(--border);
   text-transform:uppercase;flex-shrink:0;
 }
@@ -102,7 +102,7 @@ html,body{
   scrollbar-width:thin;scrollbar-color:var(--dim) transparent;
 }
 .log-line{
-  font-size:0.55rem;padding:2px 8px;
+  font-size:0.75rem;padding:2px 8px;
   border-left:2px solid var(--dim);
   color:rgba(0,255,65,0.75);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
@@ -122,14 +122,14 @@ html,body{
 
 /* ── RIGHT PANEL ── */
 #right-panel{
-  width:220px;flex-shrink:0;
+  width:280px;flex-shrink:0;
   display:flex;flex-direction:column;
   border-left:1px solid var(--border);
   background:var(--panel2);
   overflow:hidden;
 }
 #markets-title{
-  font-size:0.5rem;letter-spacing:3px;color:var(--label);
+  font-size:0.7rem;letter-spacing:3px;color:var(--label);
   padding:5px 8px;border-bottom:1px solid var(--border);
   text-transform:uppercase;flex-shrink:0;
 }
@@ -141,20 +141,20 @@ html,body{
   display:flex;justify-content:space-between;align-items:center;
   padding:3px 8px;border-bottom:1px solid rgba(0,255,70,0.05);
 }
-.market-name{font-size:0.5rem;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
-.market-price{font-size:0.65rem;color:var(--green);font-weight:bold}
-.market-change{font-size:0.5rem;margin-left:4px}
+.market-name{font-size:0.7rem;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+.market-price{font-size:0.85rem;color:var(--green);font-weight:bold}
+.market-change{font-size:0.7rem;margin-left:4px}
 .market-change.up{color:var(--green2)}
 .market-change.dn{color:var(--red)}
 
 #conf-title{
-  font-size:0.5rem;letter-spacing:3px;color:var(--label);
+  font-size:0.7rem;letter-spacing:3px;color:var(--label);
   padding:5px 8px;border-bottom:1px solid var(--border);border-top:1px solid var(--border);
   text-transform:uppercase;flex-shrink:0;
 }
 #conf-list{padding:6px 8px;display:flex;flex-direction:column;gap:6px}
 .conf-row{display:flex;flex-direction:column;gap:2px}
-.conf-label{font-size:0.5rem;color:var(--dim);letter-spacing:1px;display:flex;justify-content:space-between}
+.conf-label{font-size:0.7rem;color:var(--dim);letter-spacing:1px;display:flex;justify-content:space-between}
 .conf-bar-bg{height:3px;background:rgba(0,255,65,0.08)}
 .conf-bar-fill{height:3px;transition:width 0.5s ease}
 
@@ -169,19 +169,19 @@ html,body{
   display:flex;flex-direction:column;justify-content:space-between;
 }
 .bottom-cell:last-child{border-right:none}
-.bottom-title{font-size:0.5rem;letter-spacing:2px;color:var(--label);text-transform:uppercase;margin-bottom:4px}
+.bottom-title{font-size:0.7rem;letter-spacing:2px;color:var(--label);text-transform:uppercase;margin-bottom:4px}
 
 /* Win/Loss */
 #wl-row{display:flex;gap:16px;align-items:baseline}
-.wl-num{font-size:1.4rem;font-weight:bold;text-shadow:0 0 8px currentColor}
+.wl-num{font-size:1.8rem;font-weight:bold;text-shadow:0 0 8px currentColor}
 .wl-num.w{color:var(--green2)}
 .wl-num.l{color:var(--red)}
-.wl-label{font-size:0.55rem;color:var(--dim)}
-#winrate-txt{font-size:0.55rem;color:var(--dim)}
+.wl-label{font-size:0.75rem;color:var(--dim)}
+#winrate-txt{font-size:0.75rem;color:var(--dim)}
 
 /* Copy Trades */
 #copy-list{display:flex;flex-direction:column;gap:2px;overflow:hidden}
-.copy-row{display:flex;gap:6px;font-size:0.5rem;align-items:center}
+.copy-row{display:flex;gap:6px;font-size:0.7rem;align-items:center}
 .copy-wallet{color:var(--dim)}
 .copy-market{color:var(--green);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .copy-side{font-weight:bold}
