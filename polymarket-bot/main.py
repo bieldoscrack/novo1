@@ -206,7 +206,7 @@ async def main() -> None:
     await client.async_init_clob()
 
     binance = BinanceFeed()
-    ob_ws = ClobOrderbookWS()
+    ob_ws = ClobOrderbookWS(rest_client=client)
     discovery = MarketDiscovery(client)
     executor = Executor(client)
     risk = RiskManager()
