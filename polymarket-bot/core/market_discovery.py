@@ -4,6 +4,7 @@ Runs on a polling loop and updates bot state.
 """
 from __future__ import annotations
 import asyncio
+import json
 from typing import Any, Dict, List, Optional
 
 from loguru import logger
@@ -50,7 +51,17 @@ class MarketDiscovery:
                 m["_no_token_id"] = no_token or ""
                 enriched.append(m)
 
+        skipped = len(markets) - len(enriched)
         self._markets = enriched
+
+        if skipped:
+            logger.info(f"MarketDiscovery: {skipped} mercados sem token IDs válidos (ignorados)")
+        if enriched:
+            first = enriched[0]
+            logger.info(
+                f"Primeiro mercado: {first.get('question', '')[:50]} "
+                f"YES={first.get('_yes_token_id', '')[:20]}..."
+            )
 
         # Update dashboard state
         dashboard_markets = [
@@ -67,13 +78,24 @@ class MarketDiscovery:
         logger.info(f"MarketDiscovery: {len(enriched)} mercados com tokens válidos")
 
     def _extract_token_ids(self, m: Dict[str, Any]) -> tuple:
-        """Extract YES and NO token IDs from Gamma API market data."""
+        """Extract YES and NO token IDs from Gamma API market data.
+
+        Note: Gamma API returns clobTokenIds and tokens as JSON strings,
+        not native arrays. Must parse with json.loads() first.
+        """
         # Try 'tokens' array first (preferred)
         tokens = m.get("tokens", [])
-        if tokens:
+        if isinstance(tokens, str):
+            try:
+                tokens = json.loads(tokens)
+            except (json.JSONDecodeError, TypeError):
+                tokens = []
+        if tokens and isinstance(tokens, list):
             yes_id = ""
             no_id = ""
             for t in tokens:
+                if not isinstance(t, dict):
+                    continue
                 outcome = t.get("outcome", "").upper()
                 tid = t.get("token_id", "")
                 if outcome == "YES":
@@ -83,18 +105,18 @@ class MarketDiscovery:
             if yes_id:
                 return yes_id, no_id
 
-        # Try 'clobTokenIds' array [YES, NO]
+        # Try 'clobTokenIds' — Gamma returns this as a JSON string
         clob_ids = m.get("clobTokenIds", [])
-        if clob_ids and len(clob_ids) >= 1:
-            yes_id = clob_ids[0] if len(clob_ids) > 0 else ""
-            no_id = clob_ids[1] if len(clob_ids) > 1 else ""
+        if isinstance(clob_ids, str):
+            try:
+                clob_ids = json.loads(clob_ids)
+            except (json.JSONDecodeError, TypeError):
+                clob_ids = []
+        if isinstance(clob_ids, list) and len(clob_ids) >= 1:
+            yes_id = str(clob_ids[0]) if clob_ids[0] else ""
+            no_id = str(clob_ids[1]) if len(clob_ids) > 1 and clob_ids[1] else ""
             if yes_id:
                 return yes_id, no_id
-
-        # Fallback: use conditionId (may not work for CLOB WS)
-        cid = m.get("conditionId", m.get("id", ""))
-        if cid:
-            return cid, ""
 
         return "", ""
 

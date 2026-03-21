@@ -135,13 +135,9 @@ class PolymarketClient:
         if not self._clob:
             return None
         loop = asyncio.get_event_loop()
-        try:
-            return await loop.run_in_executor(
-                None, lambda: self._clob.get_order_book(token_id)
-            )
-        except Exception as e:
-            logger.warning(f"get_orderbook erro: {e}")
-            return None
+        return await loop.run_in_executor(
+            None, lambda: self._clob.get_order_book(token_id)
+        )
 
     async def create_order(
         self,

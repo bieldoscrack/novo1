@@ -47,6 +47,7 @@ class ClobOrderbookWS:
         self._ws: Optional[Any] = None
         self._on_update_cb: Optional[Callable[[str, OrderbookSnapshot], None]] = None
         self._rest_client = rest_client
+        self._failed_tokens: Set[str] = set()  # Track tokens that 404
 
     def on_update(self, cb: Callable[[str, OrderbookSnapshot], None]) -> None:
         self._on_update_cb = cb
@@ -126,6 +127,9 @@ class ClobOrderbookWS:
                 for tid in subs:
                     if not self._running:
                         break
+                    # Skip tokens that already 404'd
+                    if tid in self._failed_tokens:
+                        continue
                     # Skip if WS already gave us fresh data (< 10s old)
                     existing = self._books.get(tid)
                     if existing and (time.time() - existing.last_update) < 10:
@@ -150,7 +154,17 @@ class ClobOrderbookWS:
 
     async def _poll_rest_book(self, token_id: str) -> bool:
         """Fetch orderbook via REST API and update snapshot."""
-        book_data = await self._rest_client.get_orderbook(token_id)
+        try:
+            book_data = await self._rest_client.get_orderbook(token_id)
+        except Exception as e:
+            err_str = str(e)
+            if "404" in err_str or "No orderbook" in err_str:
+                self._failed_tokens.add(token_id)
+                bot_state.add_log(
+                    f"Token inválido (404): {token_id[:16]}... — removido do polling"
+                )
+                logger.warning(f"Token {token_id[:20]}... has no orderbook, removing")
+            return False
         if not book_data:
             return False
 
