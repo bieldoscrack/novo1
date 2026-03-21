@@ -1,13 +1,14 @@
 """
 CLOB WebSocket client — subscribes to market orderbook updates.
+Falls back to REST API polling when WebSocket is unavailable.
 """
 from __future__ import annotations
 import asyncio
 import json
 import time
-from collections import defaultdict
 from typing import Any, Callable, Dict, List, Optional, Set
 
+import httpx
 import websockets
 from loguru import logger
 
@@ -41,7 +42,9 @@ class ClobOrderbookWS:
         self._subscriptions: Set[str] = set()
         self._running: bool = False
         self._ws: Optional[Any] = None
+        self._ws_connected: bool = False
         self._on_update_cb: Optional[Callable[[str, OrderbookSnapshot], None]] = None
+        self._http = httpx.AsyncClient(timeout=8)
 
     def on_update(
         self, cb: Callable[[str, OrderbookSnapshot], None]
@@ -59,6 +62,19 @@ class ClobOrderbookWS:
 
     async def run(self) -> None:
         self._running = True
+        # Run WS loop and REST polling concurrently
+        rest_task = asyncio.create_task(self._poll_rest_loop())
+        try:
+            await self._ws_loop()
+        finally:
+            rest_task.cancel()
+            try:
+                await rest_task
+            except asyncio.CancelledError:
+                pass
+            await self._http.aclose()
+
+    async def _ws_loop(self) -> None:
         backoff = 2
         while self._running:
             try:
@@ -66,6 +82,7 @@ class ClobOrderbookWS:
                     settings.clob_ws_url, ping_interval=20
                 ) as ws:
                     self._ws = ws
+                    self._ws_connected = True
                     bot_state.add_log("CLOB WS conectado ✓")
                     backoff = 2
                     # Subscribe to known markets
@@ -81,8 +98,60 @@ class ClobOrderbookWS:
                 logger.warning(f"CLOB WS erro: {e}. Reconectando em {backoff}s")
                 bot_state.add_log(f"WARN: CLOB WS reconectando em {backoff}s")
                 self._ws = None
+                self._ws_connected = False
                 await asyncio.sleep(backoff)
                 backoff = min(backoff * 2, 60)
+
+    async def _poll_rest_loop(self) -> None:
+        """REST fallback: polls orderbooks via HTTP when WS is not connected."""
+        await asyncio.sleep(5)  # Give WS a chance to connect first
+        while self._running:
+            if not self._ws_connected and self._subscriptions:
+                polled = 0
+                for token_id in list(self._subscriptions):
+                    try:
+                        r = await self._http.get(
+                            f"{settings.clob_api_url}/book",
+                            params={"token_id": token_id},
+                        )
+                        if r.status_code == 200:
+                            data = r.json()
+                            await self._handle_rest(token_id, data)
+                            polled += 1
+                    except asyncio.CancelledError:
+                        return
+                    except Exception as e:
+                        logger.debug(f"REST orderbook erro para {token_id[:12]}: {e}")
+                if polled > 0:
+                    logger.debug(f"REST orderbook: {polled} mercados atualizados")
+                await asyncio.sleep(4)
+            else:
+                await asyncio.sleep(2)
+
+    async def _handle_rest(self, token_id: str, data: dict) -> None:
+        """Parse REST API orderbook response and update snapshot."""
+        if token_id not in self._books:
+            self._books[token_id] = OrderbookSnapshot(token_id)
+        book = self._books[token_id]
+        book.last_update = time.time()
+
+        bids_raw = data.get("bids", [])
+        asks_raw = data.get("asks", [])
+        try:
+            book.bids = sorted(
+                [{"price": float(b["price"]), "size": float(b["size"])} for b in bids_raw],
+                key=lambda x: -x["price"],
+            )
+            book.asks = sorted(
+                [{"price": float(a["price"]), "size": float(a["size"])} for a in asks_raw],
+                key=lambda x: x["price"],
+            )
+        except (KeyError, ValueError, TypeError) as e:
+            logger.debug(f"REST orderbook parse erro: {e}")
+            return
+
+        if self._on_update_cb:
+            self._on_update_cb(token_id, book)
 
     async def _send_subscribe(self, ws: Any, token_id: str) -> None:
         msg = json.dumps({"type": "subscribe", "market": token_id, "channel": "market"})
@@ -90,7 +159,7 @@ class ClobOrderbookWS:
 
     async def add_subscription(self, token_id: str) -> None:
         self._subscriptions.add(token_id)
-        if self._ws:
+        if self._ws and self._ws_connected:
             try:
                 await self._send_subscribe(self._ws, token_id)
             except Exception:
