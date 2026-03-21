@@ -59,6 +59,9 @@ class ClobOrderbookWS:
 
     async def run(self) -> None:
         self._running = True
+        if settings.simulation_mode:
+            await self._run_simulation()
+            return
         backoff = 2
         while self._running:
             try:
@@ -83,6 +86,35 @@ class ClobOrderbookWS:
                 self._ws = None
                 await asyncio.sleep(backoff)
                 backoff = min(backoff * 2, 60)
+
+    async def _run_simulation(self) -> None:
+        """Generate fake orderbook data in simulation mode."""
+        import random
+        bot_state.add_log("CLOB WS simulado ✓ (modo demo)")
+        while self._running:
+            try:
+                await asyncio.sleep(2.0 + random.random() * 3.0)
+                for tid in list(self._subscriptions):
+                    if tid not in self._books:
+                        self._books[tid] = OrderbookSnapshot(tid)
+                    book = self._books[tid]
+                    mid = 0.45 + random.random() * 0.1
+                    spread = 0.01 + random.random() * 0.02
+                    book.bids = [
+                        {"price": round(mid - spread / 2 - i * 0.01, 3),
+                         "size": round(50 + random.random() * 200, 0)}
+                        for i in range(5)
+                    ]
+                    book.asks = [
+                        {"price": round(mid + spread / 2 + i * 0.01, 3),
+                         "size": round(50 + random.random() * 200, 0)}
+                        for i in range(5)
+                    ]
+                    book.last_update = time.time()
+                    if self._on_update_cb:
+                        self._on_update_cb(tid, book)
+            except asyncio.CancelledError:
+                break
 
     async def _send_subscribe(self, ws: Any, token_id: str) -> None:
         msg = json.dumps({"type": "subscribe", "market": token_id, "channel": "market"})

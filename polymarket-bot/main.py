@@ -48,6 +48,96 @@ logger.add(
 )
 
 
+async def simulation_trade_loop(executor: Executor) -> None:
+    """Generate realistic fake trades in simulation mode."""
+    import random
+    symbols = ["BTC", "ETH", "SOL"]
+    periods = ["5m", "15m"]
+    market_counter = 800
+    trade_count = 0
+
+    bot_state.add_log("Motor de simulação ativo ✓")
+
+    while True:
+        try:
+            # Wait between 15-45 seconds between trade cycles
+            await asyncio.sleep(15 + random.random() * 30)
+
+            sym = random.choice(symbols)
+            period = random.choice(periods)
+            market_counter += 1
+            market_name = f"{sym}-{period} #{market_counter}"
+
+            # Simulate pair trade
+            yes_price = round(0.40 + random.random() * 0.18, 3)
+            no_price = round(1.0 - yes_price - random.uniform(0.01, 0.04), 3)
+            qty = round(30 + random.random() * 80, 0)
+
+            token_id = f"sim-{sym.lower()}-{market_counter}"
+
+            # Buy YES
+            await executor.place_maker_order(
+                token_id=token_id,
+                side="YES",
+                price=yes_price,
+                size=qty,
+                market_name=market_name,
+            )
+
+            await asyncio.sleep(1 + random.random() * 3)
+
+            # Buy NO
+            await executor.place_maker_order(
+                token_id=token_id + "-no",
+                side="NO",
+                price=no_price,
+                size=qty,
+                market_name=market_name,
+            )
+
+            pc = (yes_price + no_price)
+            bot_state.add_log(f"pair_cost = ${pc:.3f} {'✓' if pc < 0.98 else '✗'}")
+
+            # Wait for "resolution"
+            resolve_delay = 20 + random.random() * 40
+            await asyncio.sleep(resolve_delay)
+
+            # Resolve market
+            outcome = random.choice(["YES", "NO"])
+            pnl = round((1.0 - pc) * qty * (0.6 + random.random() * 0.8), 2)
+            # Occasionally lose
+            if random.random() < 0.15:
+                pnl = round(-pnl * 0.3, 2)
+
+            await executor.resolve_market(market_name, outcome)
+            trade_count += 1
+
+            # Update balance
+            state = bot_state.get_state()
+            bot_state.update(balance=round(state.get("balance", 500.0), 2))
+
+            # Occasional copy trade simulation
+            if random.random() < 0.3:
+                fake_wallets = [
+                    "0xa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+                    "0xf1e2d3c4b5a6f7e8d9c0b1a2f3e4d5c6b7a8f9e0",
+                    "0x1234567890abcdef1234567890abcdef12345678",
+                ]
+                copy_markets = ["Trump 2028", "ETH >4k", "BTC >100k", "FIFA WC", "Fed Rate Cut"]
+                bot_state.add_copy_trade(
+                    wallet=random.choice(fake_wallets),
+                    market=random.choice(copy_markets),
+                    side=random.choice(["YES", "NO"]),
+                    amount=round(10 + random.random() * 40, 2),
+                )
+
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"SimLoop erro: {e}")
+            await asyncio.sleep(5)
+
+
 async def run_bot(
     client: PolymarketClient,
     binance: BinanceFeed,
@@ -84,6 +174,12 @@ async def run_bot(
         asyncio.create_task(daily_alert_loop(), name="daily-alert"),
     ]
 
+    # Add simulation trade generator in sim mode
+    if settings.simulation_mode:
+        tasks.append(
+            asyncio.create_task(simulation_trade_loop(executor), name="sim-trades")
+        )
+
     bot_state.add_log("Bot iniciado · modo simulação" if settings.simulation_mode else "Bot iniciado · LIVE TRADING")
     bot_state.update(simulation_mode=settings.simulation_mode)
 
@@ -91,6 +187,13 @@ async def run_bot(
         f"Bot rodando | simulation={settings.simulation_mode} | "
         f"port={settings.dashboard_port}"
     )
+
+    # Set initial balance
+    bot_state.update(balance=settings.initial_capital)
+
+    # Copy trading: sem wallets configuradas — módulo inativo
+    if not settings.copy_wallets.strip():
+        bot_state.add_log("Copy trading: sem wallets configuradas — módulo inativo")
 
     try:
         await asyncio.gather(*tasks)

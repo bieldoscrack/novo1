@@ -47,6 +47,9 @@ class BinanceFeed:
 
     async def run(self) -> None:
         self._running = True
+        if settings.simulation_mode:
+            await self._run_simulation()
+            return
         url = settings.binance_ws_url
         backoff = 2
         while self._running:
@@ -65,6 +68,29 @@ class BinanceFeed:
                 bot_state.add_log(f"WARN: Binance WS reconectando em {backoff}s")
                 await asyncio.sleep(backoff)
                 backoff = min(backoff * 2, 60)
+
+    async def _run_simulation(self) -> None:
+        """Generate realistic fake price data in simulation mode."""
+        import random
+        # Start with realistic base prices
+        self._prices = {"BTC": 87500.0, "ETH": 3400.0, "SOL": 175.0}
+        bot_state.add_log("Binance WS simulado ✓ (modo demo)")
+        bot_state.update_binance_prices(dict(self._prices))
+        self._last_update = time.time()
+
+        while self._running:
+            try:
+                await asyncio.sleep(0.5 + random.random() * 1.0)
+                # Random walk with slight drift
+                for sym, vol in [("BTC", 25.0), ("ETH", 3.0), ("SOL", 0.5)]:
+                    delta = random.gauss(0, vol)
+                    self._prices[sym] = round(self._prices[sym] + delta, 2)
+                self._last_update = time.time()
+                bot_state.update_binance_prices(dict(self._prices))
+                if self._on_price_cb:
+                    self._on_price_cb(dict(self._prices))
+            except asyncio.CancelledError:
+                break
 
     async def _handle(self, raw: str) -> None:
         try:
