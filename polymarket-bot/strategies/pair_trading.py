@@ -237,17 +237,30 @@ class PairTradingStrategy(BaseStrategy):
 
     def _market_price(self, market: Dict[str, Any]) -> float:
         """Extract mid price from market data."""
-        # Try tokens array
+        import json as _json
+
+        # Try tokens array (may be JSON string from Gamma API)
         tokens = market.get("tokens", [])
-        for t in tokens:
-            if t.get("outcome", "").upper() == "YES":
-                try:
-                    return float(t.get("price", 0.5))
-                except (ValueError, TypeError):
-                    pass
-        # outcomePrices
+        if isinstance(tokens, str):
+            try:
+                tokens = _json.loads(tokens)
+            except (ValueError, TypeError):
+                tokens = []
+        if isinstance(tokens, list):
+            for t in tokens:
+                if isinstance(t, dict) and t.get("outcome", "").upper() == "YES":
+                    try:
+                        return float(t.get("price", 0.5))
+                    except (ValueError, TypeError):
+                        pass
+        # outcomePrices (also may be JSON string)
         prices = market.get("outcomePrices", [])
-        if prices:
+        if isinstance(prices, str):
+            try:
+                prices = _json.loads(prices)
+            except (ValueError, TypeError):
+                prices = []
+        if isinstance(prices, list) and prices:
             try:
                 return float(prices[0])
             except (ValueError, IndexError):

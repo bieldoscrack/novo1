@@ -124,11 +124,13 @@ class ClobOrderbookWS:
             try:
                 subs = list(self._subscriptions)
                 updated = 0
+                failed = 0
                 for tid in subs:
                     if not self._running:
                         break
                     # Skip tokens that already 404'd
                     if tid in self._failed_tokens:
+                        failed += 1
                         continue
                     # Skip if WS already gave us fresh data (< 10s old)
                     existing = self._books.get(tid)
@@ -138,11 +140,20 @@ class ClobOrderbookWS:
                     ok = await self._poll_rest_book(tid)
                     if ok:
                         updated += 1
+                        if poll_count < 3:
+                            book = self._books.get(tid)
+                            bid = book.best_bid() if book else None
+                            ask = book.best_ask() if book else None
+                            bot_state.add_log(
+                                f"Book OK: {tid[:12]}... bid={bid} ask={ask}"
+                            )
 
                 poll_count += 1
-                if poll_count % 12 == 1:  # Log every ~60s
+                # Log every poll for first 3, then every ~60s
+                if poll_count <= 3 or poll_count % 12 == 1:
                     bot_state.add_log(
                         f"Orderbook: {updated}/{len(subs)} tokens com dados"
+                        + (f", {failed} inválidos" if failed else "")
                     )
 
                 await asyncio.sleep(5)

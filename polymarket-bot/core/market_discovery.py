@@ -135,15 +135,26 @@ class MarketDiscovery:
     def _mid_price(self, m: Dict[str, Any]) -> float:
         # Try tokens array first
         tokens = m.get("tokens", [])
-        for t in tokens:
-            if t.get("outcome", "").upper() == "YES":
-                try:
-                    return float(t.get("price", 0.5))
-                except (ValueError, TypeError):
-                    pass
-        # outcomePrices fallback
+        if isinstance(tokens, str):
+            try:
+                tokens = json.loads(tokens)
+            except (json.JSONDecodeError, TypeError):
+                tokens = []
+        if isinstance(tokens, list):
+            for t in tokens:
+                if isinstance(t, dict) and t.get("outcome", "").upper() == "YES":
+                    try:
+                        return float(t.get("price", 0.5))
+                    except (ValueError, TypeError):
+                        pass
+        # outcomePrices fallback (also returned as JSON string)
         prices = m.get("outcomePrices", [])
-        if prices:
+        if isinstance(prices, str):
+            try:
+                prices = json.loads(prices)
+            except (json.JSONDecodeError, TypeError):
+                prices = []
+        if isinstance(prices, list) and prices:
             try:
                 return float(prices[0])
             except (ValueError, IndexError):
