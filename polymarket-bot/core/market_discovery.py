@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Optional
 
 from loguru import logger
 
-from config import settings
 from core.polymarket_client import PolymarketClient
 from core.state_manager import bot_state
 
@@ -37,9 +36,6 @@ class MarketDiscovery:
             await asyncio.sleep(self._poll_interval)
 
     async def _discover(self) -> None:
-        if settings.simulation_mode:
-            await self._discover_simulation()
-            return
         markets = await self._client.get_crypto_markets()
         if not markets:
             return
@@ -59,38 +55,12 @@ class MarketDiscovery:
         bot_state.update(markets=dashboard_markets)
         logger.debug(f"MarketDiscovery: {len(markets)} mercados encontrados")
 
-    async def _discover_simulation(self) -> None:
-        """Generate fake crypto markets for simulation mode."""
-        import random
-        import time as _time
-        counter = int(_time.time()) % 1000
-        fake_markets = []
-        for sym, name in [("BTC", "Bitcoin"), ("ETH", "Ethereum"), ("SOL", "Solana")]:
-            for period in ["5m", "15m"]:
-                mid = round(random.uniform(0.40, 0.60), 2)
-                mkt = {
-                    "slug": f"{sym.lower()}-{period}-{counter}",
-                    "question": f"Will {name} go UP in next {period}? #{counter}",
-                    "conditionId": f"sim-{sym}-{period}-{counter}",
-                    "id": f"sim-{sym}-{period}-{counter}",
-                    "outcomePrices": [str(mid)],
-                    "closed": False,
-                }
-                fake_markets.append(mkt)
-                counter += 1
-
-        self._markets = fake_markets
-        dashboard_markets = [
-            {
-                "name": f"{m['question'][:22]}",
-                "price": self._mid_price(m),
-                "change": round(random.uniform(-3.0, 3.0), 1),
-                "token_id": m.get("conditionId", ""),
-            }
-            for m in fake_markets
-        ]
-        bot_state.update(markets=dashboard_markets)
-        logger.debug(f"MarketDiscovery SIM: {len(fake_markets)} mercados gerados")
+    def get_market_by_token(self, token_id: str) -> Optional[Dict[str, Any]]:
+        """Find a market by its token_id/conditionId."""
+        for m in self._markets:
+            if m.get("conditionId", m.get("id", "")) == token_id:
+                return m
+        return None
 
     def _short_name(self, m: Dict[str, Any]) -> str:
         slug = m.get("slug", "")

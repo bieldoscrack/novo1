@@ -99,7 +99,7 @@ class PairTradingStrategy(BaseStrategy):
 
         # Subscribe to orderbooks for discovered markets
         for m in markets:
-            token_id = m.get("token_id", "")
+            token_id = m.get("conditionId", m.get("token_id", ""))
             if token_id:
                 await self._ob_ws.add_subscription(token_id)
 
@@ -111,8 +111,10 @@ class PairTradingStrategy(BaseStrategy):
             await self._evaluate_market(m)
 
     async def _evaluate_market(self, market: Dict[str, Any]) -> None:
-        token_id = market.get("token_id", "")
-        market_name = market.get("name", token_id[:12])
+        token_id = market.get("conditionId", market.get("token_id", ""))
+        slug = market.get("slug", "")
+        question = market.get("question", slug)
+        market_name = question[:20] if question else token_id[:12]
 
         if not token_id:
             return
@@ -193,6 +195,8 @@ class PairTradingStrategy(BaseStrategy):
             price=buy_price,
             size=delta_q,
             market_name=market_name,
+            slug=market.get("slug", ""),
+            condition_id=market.get("conditionId", market.get("id", "")),
         )
 
         # Update average pair cost in state
@@ -203,23 +207,37 @@ class PairTradingStrategy(BaseStrategy):
             ) / max(1, sum(1 for p in all_pos.values() if p.pair_cost_val > 0))
             bot_state.update(pair_cost_avg=round(avg_pc, 4))
 
+    def _market_price(self, market: Dict[str, Any]) -> float:
+        """Extract mid price from market data (Gamma or dashboard format)."""
+        # Dashboard format
+        if "price" in market:
+            return float(market["price"])
+        # Raw Gamma format
+        prices = market.get("outcomePrices", [])
+        if prices:
+            try:
+                return float(prices[0])
+            except (ValueError, IndexError):
+                pass
+        return 0.5
+
     def _estimate_true_prob(self, market: Dict[str, Any]) -> Optional[float]:
         """
         Estimate true probability using Binance price signal.
         For crypto markets: if BTC is rising, UP markets have higher true prob.
         """
-        name = market.get("name", "").lower()
+        name = market.get("question", market.get("name", "")).lower()
         slug = market.get("slug", "").lower()
         combined = name + slug
         prices = self._binance.prices
 
         if not any(v > 0 for v in prices.values()):
             # No Binance data yet — use market price as-is
-            return market.get("price", 0.5)
+            return self._market_price(market)
 
         # Very simplified: detect trend from price movement signal
         signal = bot_state.get_state().get("signal", "SCANNING")
-        base_prob = market.get("price", 0.5)
+        base_prob = self._market_price(market)
 
         # Adjust based on directional signal
         if "btc" in combined or "bitcoin" in combined:

@@ -53,6 +53,8 @@ class Executor:
         self._open_orders: Dict[str, OpenOrder] = {}
         self._positions: Dict[str, Position] = {}
         self._sim_order_counter: int = 0
+        # Maps market_name → {"slug": ..., "conditionId": ...} for resolution tracking
+        self._market_meta: Dict[str, Dict[str, str]] = {}
 
     # ── Order creation ────────────────────────────────────────────────────────
 
@@ -64,7 +66,15 @@ class Executor:
         size: float,
         market_name: str = "",
         fee_rate_bps: int = 0,
+        slug: str = "",
+        condition_id: str = "",
     ) -> Optional[OpenOrder]:
+        # Store market metadata for resolution tracking
+        if market_name and (slug or condition_id):
+            self._market_meta[market_name] = {
+                "slug": slug, "conditionId": condition_id,
+            }
+
         if settings.simulation_mode:
             self._sim_order_counter += 1
             oid = f"SIM-{self._sim_order_counter:06d}"
@@ -195,3 +205,7 @@ class Executor:
     @property
     def open_orders(self) -> Dict[str, OpenOrder]:
         return self._open_orders
+
+    @property
+    def market_meta(self) -> Dict[str, Dict[str, str]]:
+        return self._market_meta

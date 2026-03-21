@@ -48,94 +48,73 @@ logger.add(
 )
 
 
-async def simulation_trade_loop(executor: Executor) -> None:
-    """Generate realistic fake trades in simulation mode."""
-    import random
-    symbols = ["BTC", "ETH", "SOL"]
-    periods = ["5m", "15m"]
-    market_counter = 800
-    trade_count = 0
-
-    bot_state.add_log("Motor de simulação ativo ✓")
+async def resolution_monitor(
+    client: PolymarketClient, executor: Executor
+) -> None:
+    """Poll Gamma API to detect real market outcomes and resolve paper positions."""
+    bot_state.add_log("Resolution monitor ativo ✓ — rastreando resultados reais")
 
     while True:
         try:
-            # Wait between 15-45 seconds between trade cycles
-            await asyncio.sleep(15 + random.random() * 30)
+            await asyncio.sleep(30)
 
-            sym = random.choice(symbols)
-            period = random.choice(periods)
-            market_counter += 1
-            market_name = f"{sym}-{period} #{market_counter}"
+            # Check all open positions for resolution
+            positions = dict(executor.positions)
+            if not positions:
+                continue
 
-            # Simulate pair trade
-            yes_price = round(0.40 + random.random() * 0.18, 3)
-            no_price = round(1.0 - yes_price - random.uniform(0.01, 0.04), 3)
-            qty = round(30 + random.random() * 80, 0)
+            for market_name, pos in positions.items():
+                meta = executor.market_meta.get(market_name, {})
+                slug = meta.get("slug", "")
+                if not slug:
+                    continue
 
-            token_id = f"sim-{sym.lower()}-{market_counter}"
+                # Poll Gamma API for this market
+                market_data = await client.get_market_by_slug(slug)
+                if not market_data:
+                    continue
 
-            # Buy YES
-            await executor.place_maker_order(
-                token_id=token_id,
-                side="YES",
-                price=yes_price,
-                size=qty,
-                market_name=market_name,
-            )
+                # Check if market has resolved (closed with clear outcome)
+                if not market_data.get("closed", False):
+                    continue
 
-            await asyncio.sleep(1 + random.random() * 3)
+                # Determine outcome from outcomePrices
+                # When resolved: YES wins → outcomePrices=["1"] or ["1","0"]
+                #                NO wins  → outcomePrices=["0"] or ["0","1"]
+                outcome_prices = market_data.get("outcomePrices", [])
+                if not outcome_prices:
+                    continue
 
-            # Buy NO
-            await executor.place_maker_order(
-                token_id=token_id + "-no",
-                side="NO",
-                price=no_price,
-                size=qty,
-                market_name=market_name,
-            )
+                try:
+                    yes_price = float(outcome_prices[0])
+                except (ValueError, IndexError):
+                    continue
 
-            pc = (yes_price + no_price)
-            bot_state.add_log(f"pair_cost = ${pc:.3f} {'✓' if pc < 0.98 else '✗'}")
+                # Only resolve if price is clearly 0 or 1 (market fully resolved)
+                if yes_price >= 0.95:
+                    outcome = "YES"
+                elif yes_price <= 0.05:
+                    outcome = "NO"
+                else:
+                    # Not yet fully resolved
+                    continue
 
-            # Wait for "resolution"
-            resolve_delay = 20 + random.random() * 40
-            await asyncio.sleep(resolve_delay)
-
-            # Resolve market
-            outcome = random.choice(["YES", "NO"])
-            pnl = round((1.0 - pc) * qty * (0.6 + random.random() * 0.8), 2)
-            # Occasionally lose
-            if random.random() < 0.15:
-                pnl = round(-pnl * 0.3, 2)
-
-            await executor.resolve_market(market_name, outcome)
-            trade_count += 1
-
-            # Update balance
-            state = bot_state.get_state()
-            bot_state.update(balance=round(state.get("balance", 500.0), 2))
-
-            # Occasional copy trade simulation
-            if random.random() < 0.3:
-                fake_wallets = [
-                    "0xa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
-                    "0xf1e2d3c4b5a6f7e8d9c0b1a2f3e4d5c6b7a8f9e0",
-                    "0x1234567890abcdef1234567890abcdef12345678",
-                ]
-                copy_markets = ["Trump 2028", "ETH >4k", "BTC >100k", "FIFA WC", "Fed Rate Cut"]
-                bot_state.add_copy_trade(
-                    wallet=random.choice(fake_wallets),
-                    market=random.choice(copy_markets),
-                    side=random.choice(["YES", "NO"]),
-                    amount=round(10 + random.random() * 40, 2),
+                pnl = await executor.resolve_market(market_name, outcome)
+                result = "WIN" if pnl >= 0 else "LOSS"
+                bot_state.add_log(
+                    f"📊 {result}: {market_name} → {outcome} "
+                    f"({'+'if pnl>=0 else ''}{pnl:.2f} USDC)"
+                )
+                logger.info(
+                    f"Resolution: {market_name} → {outcome} | "
+                    f"PnL={pnl:+.2f} | {result}"
                 )
 
         except asyncio.CancelledError:
             break
         except Exception as e:
-            logger.error(f"SimLoop erro: {e}")
-            await asyncio.sleep(5)
+            logger.error(f"ResolutionMonitor erro: {e}")
+            await asyncio.sleep(10)
 
 
 async def run_bot(
@@ -172,15 +151,16 @@ async def run_bot(
         asyncio.create_task(pair_strategy.run(), name="pair-trading"),
         asyncio.create_task(copy_strategy.run(), name="copy-trading"),
         asyncio.create_task(daily_alert_loop(), name="daily-alert"),
+        asyncio.create_task(
+            resolution_monitor(client, executor), name="resolution-monitor"
+        ),
     ]
 
-    # Add simulation trade generator in sim mode
-    if settings.simulation_mode:
-        tasks.append(
-            asyncio.create_task(simulation_trade_loop(executor), name="sim-trades")
-        )
-
-    bot_state.add_log("Bot iniciado · modo simulação" if settings.simulation_mode else "Bot iniciado · LIVE TRADING")
+    bot_state.add_log(
+        "Bot iniciado · PAPER TRADING (dados reais, ordens simuladas)"
+        if settings.simulation_mode
+        else "Bot iniciado · LIVE TRADING"
+    )
     bot_state.update(simulation_mode=settings.simulation_mode)
 
     logger.info(
