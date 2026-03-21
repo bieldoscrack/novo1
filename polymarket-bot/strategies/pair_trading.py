@@ -50,6 +50,7 @@ class PairTradingStrategy(BaseStrategy):
         self._risk = risk
         self._last_btc_price: float = 0.0
         self._last_btc_ts: float = 0.0
+        self._scan_count: int = 0
 
         # Subscribe to orderbook updates
         self._ob_ws.on_update(self._on_book_update)
@@ -74,19 +75,18 @@ class PairTradingStrategy(BaseStrategy):
                 bot_state.update(signal=direction)
 
     def _on_book_update(self, token_id: str, book: OrderbookSnapshot) -> None:
-        # Trigger immediate evaluation when book updates
         pass  # Main loop handles this
 
     async def run(self) -> None:
         self._running = True
         bot_state.add_log("Pair Trading iniciado ✓")
 
-        # Subscribe to markets as they're discovered
         while self._running:
             try:
                 await self._scan_cycle()
             except Exception as e:
                 logger.error(f"PairTrading scan erro: {e}")
+                bot_state.add_log(f"ERR scan: {e}")
             await asyncio.sleep(SCAN_INTERVAL)
 
     async def _scan_cycle(self) -> None:
@@ -97,29 +97,46 @@ class PairTradingStrategy(BaseStrategy):
         if not markets:
             return
 
-        # Subscribe to orderbooks for discovered markets
+        self._scan_count += 1
+
+        # Subscribe to orderbooks using REAL token IDs
         for m in markets:
-            token_id = m.get("conditionId", m.get("token_id", ""))
-            if token_id:
-                await self._ob_ws.add_subscription(token_id)
+            yes_tid = m.get("_yes_token_id", "")
+            no_tid = m.get("_no_token_id", "")
+            if yes_tid:
+                await self._ob_ws.add_subscription(yes_tid)
+            if no_tid:
+                await self._ob_ws.add_subscription(no_tid)
 
         # Update confidence metrics
         self._update_confidence()
 
-        # Evaluate each market pair
+        # Log scan status periodically
+        if self._scan_count % 12 == 1:  # Every ~60s
+            books_with_data = sum(
+                1 for m in markets
+                if self._ob_ws.get_book(m.get("_yes_token_id", ""))
+            )
+            signal = bot_state.get_state().get("signal", "SCANNING")
+            bot_state.add_log(
+                f"Scan #{self._scan_count}: {len(markets)} mercados, "
+                f"{books_with_data} com book, sinal={signal}"
+            )
+
+        # Evaluate each market
         for m in markets:
             await self._evaluate_market(m)
 
     async def _evaluate_market(self, market: Dict[str, Any]) -> None:
-        token_id = market.get("conditionId", market.get("token_id", ""))
+        yes_tid = market.get("_yes_token_id", "")
         slug = market.get("slug", "")
         question = market.get("question", slug)
-        market_name = question[:20] if question else token_id[:12]
+        market_name = question[:20] if question else slug[:12]
 
-        if not token_id:
+        if not yes_tid:
             return
 
-        book = self._ob_ws.get_book(token_id)
+        book = self._ob_ws.get_book(yes_tid)
         if not book:
             return
 
@@ -157,7 +174,13 @@ class PairTradingStrategy(BaseStrategy):
         if not buy_side:
             return
 
-        # Simulate pair cost check
+        # Log that we found an edge
+        bot_state.add_log(
+            f"Edge: {market_name[:15]} {buy_side} "
+            f"@{buy_price:.3f} edge={buy_edge:.1%}"
+        )
+
+        # Pair cost check
         qty_yes = pos.qty_yes if pos else 0.0
         qty_no = pos.qty_no if pos else 0.0
         cost_yes = pos.cost_yes if pos else 0.0
@@ -169,6 +192,7 @@ class PairTradingStrategy(BaseStrategy):
             market_exposure=(cost_yes + cost_no),
         )
         if size_usd <= 0:
+            bot_state.add_log(f"Skip {market_name[:15]}: tamanho=0")
             return
 
         delta_q = size_usd / buy_price
@@ -178,19 +202,23 @@ class PairTradingStrategy(BaseStrategy):
             buy_side, delta_q, buy_price
         )
         if new_pc >= settings.pair_cost_threshold:
+            bot_state.add_log(
+                f"Skip {market_name[:15]}: pair_cost={new_pc:.3f} >= {settings.pair_cost_threshold}"
+            )
             return
 
         can, reason = self._risk.can_trade(size_usd)
         if not can:
+            bot_state.add_log(f"Skip {market_name[:15]}: {reason}")
             return
 
-        logger.debug(
-            f"Pair edge: {market_name} BUY {buy_side} @{buy_price:.3f} "
-            f"edge={buy_edge:.3f} new_pc={new_pc:.3f}"
+        bot_state.add_log(
+            f"📈 TRADE: {buy_side} {market_name[:15]} @{buy_price:.3f} "
+            f"${size_usd:.2f} edge={buy_edge:.1%}"
         )
 
         await self._executor.place_maker_order(
-            token_id=token_id,
+            token_id=yes_tid,
             side=buy_side,
             price=buy_price,
             size=delta_q,
@@ -208,11 +236,16 @@ class PairTradingStrategy(BaseStrategy):
             bot_state.update(pair_cost_avg=round(avg_pc, 4))
 
     def _market_price(self, market: Dict[str, Any]) -> float:
-        """Extract mid price from market data (Gamma or dashboard format)."""
-        # Dashboard format
-        if "price" in market:
-            return float(market["price"])
-        # Raw Gamma format
+        """Extract mid price from market data."""
+        # Try tokens array
+        tokens = market.get("tokens", [])
+        for t in tokens:
+            if t.get("outcome", "").upper() == "YES":
+                try:
+                    return float(t.get("price", 0.5))
+                except (ValueError, TypeError):
+                    pass
+        # outcomePrices
         prices = market.get("outcomePrices", [])
         if prices:
             try:
@@ -232,10 +265,8 @@ class PairTradingStrategy(BaseStrategy):
         prices = self._binance.prices
 
         if not any(v > 0 for v in prices.values()):
-            # No Binance data yet — use market price as-is
             return self._market_price(market)
 
-        # Very simplified: detect trend from price movement signal
         signal = bot_state.get_state().get("signal", "SCANNING")
         base_prob = self._market_price(market)
 
@@ -265,7 +296,7 @@ class PairTradingStrategy(BaseStrategy):
 
         pair_edge_pct = 75 if has_binance and has_markets else 20
         liquidity_pct = 60 if has_markets else 10
-        copy_pct = 45  # Updated by copy trading module
+        copy_pct = 45
 
         bot_state.update(
             confidence=[

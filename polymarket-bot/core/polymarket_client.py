@@ -68,7 +68,7 @@ class PolymarketClient:
             return []
 
     async def get_crypto_markets(self) -> List[Dict[str, Any]]:
-        """Fetch 5m/15m BTC/ETH/SOL markets."""
+        """Fetch BTC 5-minute up/down markets."""
         url = f"{settings.gamma_api_url}/markets"
         params = {"closed": "false", "limit": 100}
         try:
@@ -76,13 +76,18 @@ class PolymarketClient:
             r.raise_for_status()
             data = r.json()
             markets = data if isinstance(data, list) else data.get("markets", [])
-            keywords = ["btc", "eth", "sol", "bitcoin", "ethereum", "solana"]
-            return [
-                m for m in markets
-                if any(k in (m.get("slug", "") + m.get("question", "")).lower()
-                       for k in keywords)
-                and not m.get("closed", True)
-            ]
+            # Focus on BTC 5-minute markets
+            btc_keywords = ["btc", "bitcoin"]
+            result = []
+            for m in markets:
+                combined = (m.get("slug", "") + m.get("question", "")).lower()
+                if m.get("closed", True):
+                    continue
+                if not any(k in combined for k in btc_keywords):
+                    continue
+                # Prefer 5-minute markets but include all BTC
+                result.append(m)
+            return result
         except Exception as e:
             logger.warning(f"Gamma crypto markets erro: {e}")
             return []
